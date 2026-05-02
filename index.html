@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO FINAL AI</title>
+<title>CARO AI CLEAN</title>
 
 <style>
 body{
@@ -33,20 +33,21 @@ h1{text-shadow:2px 2px 5px black;}
 .cell:hover{background:#555;}
 .last{background:yellow !important;}
 .win{background:lime !important;}
+
+button{margin:5px;padding:6px;}
 </style>
 </head>
 
 <body>
 
-<h1>🤖 CARO AI FINAL</h1>
+<h1>🤖 CARO AI</h1>
 
 <input id="name" placeholder="Tên bạn">
 <button onclick="start()">Start</button>
-
 <br>
 
-<button onclick="setMode('AI')">🤖 AI</button>
-<button onclick="setMode('2P')">👥 2 Người</button>
+<button onclick="setMode('AI')">AI</button>
+<button onclick="setMode('2P')">2 Người</button>
 
 <br>
 
@@ -123,7 +124,7 @@ function place(r,c,p){
     updateUI();
 }
 
-// ===== AI =====
+// ===== AI (ĐÃ SỬA HOÀN TOÀN) =====
 function aiMove(){
 
     let moves=[];
@@ -142,7 +143,7 @@ function aiMove(){
 
     if(moves.length===0) return;
 
-    // thắng ngay
+    // 1. THẮNG NGAY
     for(let m of moves){
         board[m.r][m.c]="O";
         if(checkWin(m.r,m.c,"O")){
@@ -152,7 +153,7 @@ function aiMove(){
         board[m.r][m.c]="";
     }
 
-    // chặn ngay
+    // 2. CHẶN NGAY
     for(let m of moves){
         board[m.r][m.c]="X";
         if(checkWin(m.r,m.c,"X")){
@@ -162,19 +163,24 @@ function aiMove(){
         board[m.r][m.c]="";
     }
 
-    // sắp xếp
+    // 3. SẮP XẾP THEO ĐIỂM
     moves.sort((a,b)=>b.score-a.score);
 
+    // 4. CHỌN THEO LEVEL
     if(difficulty==="easy"){
-        return placeAI(moves[Math.floor(Math.random()*moves.length)]);
+        return placeAI(
+            moves[Math.floor(Math.random()*moves.length)]
+        );
     }
 
     if(difficulty==="normal"){
         let top=moves.slice(0,5);
-        return placeAI(top[Math.floor(Math.random()*top.length)]);
+        return placeAI(
+            top[Math.floor(Math.random()*top.length)]
+        );
     }
 
-    return placeAI(moves[0]);
+    return placeAI(moves[0]); // HARD
 }
 
 // ===== AI SUPPORT =====
@@ -237,12 +243,14 @@ function checkWin(r,c,p){
 
         for(let i=1;i<5;i++){
             let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) cells.push([nr,nc]); else break;
+            if(board[nr]?.[nc]==p) cells.push([nr,nc]);
+            else break;
         }
 
         for(let i=1;i<5;i++){
             let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) cells.unshift([nr,nc]); else break;
+            if(board[nr]?.[nc]==p) cells.unshift([nr,nc]);
+            else break;
         }
 
         if(cells.length>=5) return cells;
@@ -255,8 +263,9 @@ function end(cells,p){
     gameOver=true;
 
     cells.forEach(([r,c])=>{
-        document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`)
-        .classList.add("win");
+        document.querySelector(
+            `.cell[data-r='${r}'][data-c='${c}']`
+        ).classList.add("win");
     });
 
     setTimeout(()=>{
@@ -278,7 +287,10 @@ function updateUI(){
 }
 
 function updateInfo(){
-    info.innerText=`${player} | Mode:${mode} | Level:${difficulty} | Lượt:${current}`;
+    info.innerText =
+        player+" | Mode:"+mode+
+        " | Level:"+difficulty+
+        " | Lượt:"+current;
 }
 
 // ===== CONTROL =====

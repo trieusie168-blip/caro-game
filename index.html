@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO UPGRADED AI</title>
+<title>CARO FIXED AI</title>
 
 <style>
 body{
@@ -10,20 +10,20 @@ body{
     text-align:center;
     font-family:Arial;
     color:white;
-    background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
-    no-repeat center/cover;
+    background:#111;
 }
 #board{
     display:grid;
-    grid-template-columns:repeat(30,22px);
+    grid-template-columns:repeat(20,24px);
     gap:2px;
     justify-content:center;
+    margin-top:10px;
 }
 .cell{
-    width:22px;height:22px;
-    background:rgba(0,0,0,0.6);
+    width:24px;height:24px;
+    background:#333;
     cursor:pointer;
-    line-height:22px;
+    line-height:24px;
     font-size:14px;
 }
 .cell:hover{background:#555;}
@@ -34,7 +34,7 @@ button{margin:5px;}
 
 <body>
 
-<h2>🤖 CARO UPGRADED AI</h2>
+<h2>CARO FIXED AI</h2>
 
 <div id="step1">
 <input id="name" placeholder="Tên...">
@@ -47,10 +47,6 @@ button{margin:5px;}
 </div>
 
 <div id="step3" class="hidden">
-<button onclick="chooseLevel('hard')">Khó</button>
-</div>
-
-<div id="step4" class="hidden">
 <button onclick="chooseSide('X')">Đi trước</button>
 <button onclick="chooseSide('O')">Đi sau</button>
 </div>
@@ -61,13 +57,20 @@ button{margin:5px;}
 <div id="board"></div>
 
 <script>
-const SIZE=30;
+const SIZE=20;
+
 let board=[], current="X";
 let playerSide="X", aiSide="O";
 let mode="", gameOver=false, player="";
 
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
+
+// FIX DOM ELEMENTS
+const step1=document.getElementById("step1");
+const step2=document.getElementById("step2");
+const step3=document.getElementById("step3");
+const startBtn=document.getElementById("startBtn");
 
 // ===== FLOW =====
 function nextStep(){
@@ -81,15 +84,10 @@ function chooseMode(m){
     step3.classList.remove("hidden");
 }
 
-function chooseLevel(l){
-    step3.classList.add("hidden");
-    step4.classList.remove("hidden");
-}
-
 function chooseSide(s){
     playerSide=s;
     aiSide=(s==="X")?"O":"X";
-    step4.classList.add("hidden");
+    step3.classList.add("hidden");
     startBtn.classList.remove("hidden");
 }
 
@@ -117,6 +115,13 @@ function init(){
     }
 
     updateInfo();
+
+    // AI đi trước
+    if(mode==="AI" && aiSide==="X"){
+        let mid=Math.floor(SIZE/2);
+        place(mid,mid,aiSide);
+        current=playerSide;
+    }
 }
 
 // ===== MOVE =====
@@ -129,11 +134,10 @@ function move(r,c){
     if(checkWin(r,c,current)) return end(current);
 
     current=(current==="X")?"O":"X";
-
     updateInfo();
 
     if(mode==="AI" && current===aiSide){
-        setTimeout(aiMove,200);
+        setTimeout(aiMove,100);
     }
 }
 
@@ -143,67 +147,56 @@ function place(r,c,p){
     updateUI();
 }
 
-// ===== AI MINIMAX (DEPTH 2) =====
+// ===== AI (FIXED + KHÔNG TREO) =====
 function aiMove(){
+    let best=null;
     let bestScore=-Infinity;
-    let move=null;
 
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            if(board[i][j]===""){
-                board[i][j]=aiSide;
-                let score=minimax(2,false);
-                board[i][j]="";
+    let moves=getCandidateMoves(); // 👈 FIX QUAN TRỌNG
 
-                if(score>bestScore){
-                    bestScore=score;
-                    move={r:i,c:j};
-                }
-            }
+    for(let m of moves){
+        board[m.r][m.c]=aiSide;
+        let score=evaluate();
+        board[m.r][m.c]="";
+
+        if(score>bestScore){
+            bestScore=score;
+            best=m;
         }
     }
 
-    place(move.r,move.c,aiSide);
+    if(!best) return;
 
-    if(checkWin(move.r,move.c,aiSide)) return end(aiSide);
+    place(best.r,best.c,aiSide);
+
+    if(checkWin(best.r,best.c,aiSide)) return end(aiSide);
 
     current=playerSide;
     updateInfo();
 }
 
-// ===== MINIMAX =====
-function minimax(depth,isMax){
-    if(depth===0) return evaluate();
+// ===== CHỈ XÉT VÙNG GẦN QUÂN (FIX TREO) =====
+function getCandidateMoves(){
+    let list=[];
 
-    let winner=checkWinner();
-    if(winner===aiSide) return 100000;
-    if(winner===playerSide) return -100000;
-
-    if(isMax){
-        let best=-Infinity;
-        for(let i=0;i<SIZE;i++){
-            for(let j=0;j<SIZE;j++){
-                if(board[i][j]===""){
-                    board[i][j]=aiSide;
-                    best=Math.max(best,minimax(depth-1,false));
-                    board[i][j]="";
-                }
+    for(let i=0;i<SIZE;i++){
+        for(let j=0;j<SIZE;j++){
+            if(board[i][j]===""){
+                if(hasNeighbor(i,j)) list.push({r:i,c:j});
             }
         }
-        return best;
-    }else{
-        let best=Infinity;
-        for(let i=0;i<SIZE;i++){
-            for(let j=0;j<SIZE;j++){
-                if(board[i][j]===""){
-                    board[i][j]=playerSide;
-                    best=Math.min(best,minimax(depth-1,true));
-                    board[i][j]="";
-                }
-            }
-        }
-        return best;
     }
+
+    return list.length?list:[{r:10,c:10}];
+}
+
+function hasNeighbor(r,c){
+    for(let i=-1;i<=1;i++){
+        for(let j=-1;j<=1;j++){
+            if(board[r+i]?.[c+j]) return true;
+        }
+    }
+    return false;
 }
 
 // ===== EVALUATE =====
@@ -224,6 +217,7 @@ function score(p){
                         if(board[i+dr*k]?.[j+dc*k]===p) count++;
                         else break;
                     }
+
                     if(count>=5) total+=100000;
                     else if(count===4) total+=10000;
                     else if(count===3) total+=1000;
@@ -235,11 +229,13 @@ function score(p){
     return total;
 }
 
-// ===== WIN CHECK =====
+// ===== WIN =====
 function checkWin(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
+
     for(let [dr,dc] of dirs){
         let count=1;
+
         for(let k=1;k<5;k++){
             if(board[r+dr*k]?.[c+dc*k]===p) count++;
             else break;
@@ -248,20 +244,10 @@ function checkWin(r,c,p){
             if(board[r-dr*k]?.[c-dc*k]===p) count++;
             else break;
         }
+
         if(count>=5) return true;
     }
     return false;
-}
-
-// ===== CHECK WINNER =====
-function checkWinner(){
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            if(board[i][j] && checkWin(i,j,board[i][j]))
-                return board[i][j];
-        }
-    }
-    return null;
 }
 
 // ===== END =====
@@ -269,7 +255,7 @@ function end(p){
     gameOver=true;
     setTimeout(()=>{
         alert(p===playerSide?player+" thắng!":"AI thắng!");
-    },200);
+    },100);
 }
 
 // ===== UI =====

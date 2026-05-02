@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO AI CLEAN</title>
+<title>CARO AI FINAL+</title>
 
 <style>
 body{
@@ -44,6 +44,7 @@ button{margin:5px;padding:6px;}
 
 <input id="name" placeholder="Tên bạn">
 <button onclick="start()">Start</button>
+
 <br>
 
 <button onclick="setMode('AI')">AI</button>
@@ -57,6 +58,12 @@ button{margin:5px;padding:6px;}
 
 <br>
 
+<b>Chọn lượt:</b>
+<button onclick="setPlayerSide('X')">Đi trước (X)</button>
+<button onclick="setPlayerSide('O')">Đi sau (O)</button>
+
+<br>
+
 <button onclick="reset()">Reset</button>
 
 <div id="info"></div>
@@ -67,6 +74,7 @@ const SIZE=30;
 
 let board=[],current="X",mode="AI",difficulty="normal";
 let last=null,gameOver=false,player="";
+let playerSide="X"; // X = đi trước, O = đi sau
 
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
@@ -81,8 +89,9 @@ function start(){
 function init(){
     board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
     boardDiv.innerHTML="";
-    current="X";
     gameOver=false;
+
+    current = "X"; // luôn bắt đầu từ X
 
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
@@ -94,12 +103,26 @@ function init(){
             boardDiv.appendChild(cell);
         }
     }
+
     updateInfo();
+
+    // Nếu người chơi chọn O → AI đi trước
+    if(mode==="AI" && playerSide==="O"){
+        setTimeout(aiMove,400);
+    }
 }
+
+// ===== SET =====
+function setMode(m){mode=m;}
+function setLevel(l){difficulty=l;}
+function setPlayerSide(s){playerSide=s;}
 
 // ===== MOVE =====
 function move(r,c){
     if(board[r][c]!==""||gameOver) return;
+
+    // Nếu chơi AI, chỉ cho click khi tới lượt mình
+    if(mode==="AI" && current!==playerSide) return;
 
     place(r,c,current);
 
@@ -109,11 +132,10 @@ function move(r,c){
     if(mode==="2P"){
         current=current==="X"?"O":"X";
     }else{
-        if(current==="X"){
-            current="O";
-            setTimeout(aiMove,300);
-        }
+        current = (current==="X")?"O":"X";
+        setTimeout(aiMove,300);
     }
+
     updateInfo();
 }
 
@@ -124,8 +146,10 @@ function place(r,c,p){
     updateUI();
 }
 
-// ===== AI (ĐÃ SỬA HOÀN TOÀN) =====
+// ===== AI =====
 function aiMove(){
+
+    if(gameOver) return;
 
     let moves=[];
 
@@ -143,7 +167,7 @@ function aiMove(){
 
     if(moves.length===0) return;
 
-    // 1. THẮNG NGAY
+    // thắng ngay
     for(let m of moves){
         board[m.r][m.c]="O";
         if(checkWin(m.r,m.c,"O")){
@@ -153,7 +177,7 @@ function aiMove(){
         board[m.r][m.c]="";
     }
 
-    // 2. CHẶN NGAY
+    // chặn ngay
     for(let m of moves){
         board[m.r][m.c]="X";
         if(checkWin(m.r,m.c,"X")){
@@ -163,24 +187,18 @@ function aiMove(){
         board[m.r][m.c]="";
     }
 
-    // 3. SẮP XẾP THEO ĐIỂM
     moves.sort((a,b)=>b.score-a.score);
 
-    // 4. CHỌN THEO LEVEL
     if(difficulty==="easy"){
-        return placeAI(
-            moves[Math.floor(Math.random()*moves.length)]
-        );
+        return placeAI(moves[Math.floor(Math.random()*moves.length)]);
     }
 
     if(difficulty==="normal"){
         let top=moves.slice(0,5);
-        return placeAI(
-            top[Math.floor(Math.random()*top.length)]
-        );
+        return placeAI(top[Math.floor(Math.random()*top.length)]);
     }
 
-    return placeAI(moves[0]); // HARD
+    return placeAI(moves[0]);
 }
 
 // ===== AI SUPPORT =====
@@ -194,6 +212,7 @@ function placeAI(m){
     updateInfo();
 }
 
+// ===== AI LOGIC =====
 function evaluate(r,c){
     return score(r,c,"O")*2 + score(r,c,"X")*3;
 }
@@ -263,13 +282,17 @@ function end(cells,p){
     gameOver=true;
 
     cells.forEach(([r,c])=>{
-        document.querySelector(
-            `.cell[data-r='${r}'][data-c='${c}']`
-        ).classList.add("win");
+        document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`)
+        .classList.add("win");
     });
 
     setTimeout(()=>{
-        alert((mode==="AI"&&p==="O")?"AI thắng!":player+" thắng!");
+        if(mode==="AI"){
+            if(p===playerSide) alert(player+" thắng!");
+            else alert("AI thắng!");
+        }else{
+            alert(p+" thắng!");
+        }
     },200);
 }
 
@@ -287,15 +310,14 @@ function updateUI(){
 }
 
 function updateInfo(){
-    info.innerText =
+    info.innerText=
         player+" | Mode:"+mode+
         " | Level:"+difficulty+
+        " | Bạn chơi:"+playerSide+
         " | Lượt:"+current;
 }
 
-// ===== CONTROL =====
-function setMode(m){mode=m;}
-function setLevel(l){difficulty=l;}
+// ===== RESET =====
 function reset(){init();}
 </script>
 

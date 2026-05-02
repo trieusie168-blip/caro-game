@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO PRO MAX</title>
+<title>CARO ULTIMATE</title>
 
 <style>
 body{
@@ -14,15 +14,21 @@ body{
     no-repeat center/cover;
 }
 
-h1{margin-top:10px;text-shadow:2px 2px 5px black;}
+h1{text-shadow:2px 2px 5px black;}
 
 #controls{margin:10px;}
 
+input{
+    padding:6px;
+    border-radius:5px;
+    border:none;
+}
+
 button{
-    padding:8px 12px;
+    padding:7px 10px;
+    margin:3px;
     border:none;
     border-radius:6px;
-    margin:3px;
     cursor:pointer;
     background:#00c6ff;
     font-weight:bold;
@@ -45,47 +51,61 @@ button{
     cursor:pointer;
 }
 
-.cell:hover{background:#444;}
+.cell:hover{background:#555;}
 
-.X{color:#ff4d4d;}
-.O{color:#4da6ff;}
+.last{background:yellow !important;}
+.win{background:lime !important;}
 
-.last{background:yellow !important;color:black;}
-.win{background:lime !important;color:black;}
+#info{margin-top:10px;}
 </style>
 </head>
 
 <body>
 
-<h1>🏖️ CARO PRO MAX</h1>
+<h1>🏖️ CARO ULTIMATE</h1>
 
 <div id="controls">
-<button onclick="startAI()">🤖 Đấu AI</button>
-<button onclick="start2P()">👥 2 Người</button>
+<input id="playerName" placeholder="Nhập tên..." />
+<button onclick="startGame()">Bắt đầu</button>
+
+<br>
+
+<button onclick="setMode('AI')">🤖 AI</button>
+<button onclick="setMode('2P')">👥 2 Người</button>
+
+<br>
 
 <button onclick="setLevel('easy')">😊 Dễ</button>
 <button onclick="setLevel('normal')">😐 Bình thường</button>
 <button onclick="setLevel('hard')">😈 Khó</button>
 
+<br>
+
 <button onclick="reset()">🔄 Reset</button>
 </div>
 
-<div id="status"></div>
+<div id="info"></div>
 <div id="board"></div>
 
 <script>
 const SIZE=30;
-let board=[],gameOver=false,mode="AI",current="X",last=null;
-let difficulty="normal";
+let board=[],current="X",mode="AI",difficulty="normal";
+let last=null,gameOver=false,player="";
 
 const boardDiv=document.getElementById("board");
-const statusDiv=document.getElementById("status");
+const infoDiv=document.getElementById("info");
+
+// ===== START =====
+function startGame(){
+    player=document.getElementById("playerName").value || "Người chơi";
+    init();
+}
 
 // ===== INIT =====
 function init(){
     board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
-    gameOver=false;
     current="X";
+    gameOver=false;
     last=null;
     boardDiv.innerHTML="";
 
@@ -99,13 +119,19 @@ function init(){
             boardDiv.appendChild(cell);
         }
     }
-    updateStatus();
+    updateInfo();
 }
 
 // ===== MODE =====
-function startAI(){mode="AI";init();}
-function start2P(){mode="2P";init();}
-function setLevel(lv){difficulty=lv;alert("Level: "+lv);}
+function setMode(m){
+    mode=m;
+    alert("Mode: "+m);
+}
+
+function setLevel(lv){
+    difficulty=lv;
+    alert("Level: "+lv);
+}
 
 // ===== MOVE =====
 function move(r,c){
@@ -116,18 +142,17 @@ function move(r,c){
     updateUI();
 
     let win=checkWin(r,c,current);
-    if(win) return endGame(win,current+" thắng!");
+    if(win) return endGame(win,current);
 
     if(mode==="2P"){
         current=current==="X"?"O":"X";
-        updateStatus();
     }else{
         if(current==="X"){
             current="O";
-            updateStatus();
             setTimeout(aiMove,100);
         }
     }
+    updateInfo();
 }
 
 // ===== AI =====
@@ -143,47 +168,37 @@ function aiMove(){
         }
     }
 
-    // EASY
     if(difficulty==="easy"){
         let m=moves[Math.floor(Math.random()*moves.length)];
-        return placeAI(m.r,m.c);
+        return placeAI(m);
     }
 
     moves.sort((a,b)=>b.score-a.score);
 
-    // NORMAL
     if(difficulty==="normal"){
         let top=moves.slice(0,5);
         let m=top[Math.floor(Math.random()*top.length)];
-        return placeAI(m.r,m.c);
+        return placeAI(m);
     }
 
-    // HARD
-    let best=moves[0];
-    placeAI(best.r,best.c);
+    placeAI(moves[0]); // HARD
 }
 
-// ===== PLACE AI =====
-function placeAI(r,c){
-    board[r][c]="O";
-    last=[r,c];
+function placeAI(m){
+    board[m.r][m.c]="O";
+    last=[m.r,m.c];
     updateUI();
 
-    let win=checkWin(r,c,"O");
-    if(win) return endGame(win,"AI thắng!");
+    let win=checkWin(m.r,m.c,"O");
+    if(win) return endGame(win,"O");
 
     current="X";
-    updateStatus();
+    updateInfo();
 }
 
 // ===== AI LOGIC =====
 function evaluate(r,c){
-    return score(r,c,"O")*2 + score(r,c,"X")*2 + centerScore(r,c);
-}
-
-function centerScore(r,c){
-    let center=SIZE/2;
-    return 10-Math.abs(r-center)-Math.abs(c-center);
+    return score(r,c,"O")*2 + score(r,c,"X")*2;
 }
 
 function score(r,c,p){
@@ -191,26 +206,24 @@ function score(r,c,p){
     let total=0;
 
     for(let [dr,dc] of dirs){
-        let count=1,open=0;
+        let count=1;
 
         for(let i=1;i<5;i++){
             let nr=r+dr*i,nc=c+dc*i;
             if(board[nr]?.[nc]==p) count++;
-            else{ if(board[nr]?.[nc]=="") open++; break; }
+            else break;
         }
 
         for(let i=1;i<5;i++){
             let nr=r-dr*i,nc=c-dc*i;
             if(board[nr]?.[nc]==p) count++;
-            else{ if(board[nr]?.[nc]=="") open++; break; }
+            else break;
         }
 
         if(count>=5) total+=100000;
-        else if(count==4&&open==2) total+=20000;
         else if(count==4) total+=10000;
-        else if(count==3&&open==2) total+=5000;
         else if(count==3) total+=1000;
-        else if(count==2) total+=200;
+        else if(count==2) total+=100;
     }
 
     return total;
@@ -239,13 +252,17 @@ function checkWin(r,c,p){
 }
 
 // ===== END =====
-function endGame(cells,msg){
+function endGame(cells,p){
     gameOver=true;
 
     cells.forEach(([r,c])=>{
         document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`)
         .classList.add("win");
     });
+
+    let msg = (mode==="AI")
+        ? (p==="X" ? player+" thắng!" : "AI thắng!")
+        : p+" thắng!";
 
     setTimeout(()=>alert(msg),200);
 }
@@ -263,15 +280,18 @@ function updateUI(){
     });
 }
 
-function updateStatus(){
-    statusDiv.innerText="Lượt: "+current+" | Mode: "+mode+" | Level: "+difficulty;
+function updateInfo(){
+    infoDiv.innerText =
+        "👤 "+player+
+        " | Mode: "+mode+
+        " | Level: "+difficulty+
+        " | Lượt: "+current;
 }
 
 // ===== RESET =====
-function reset(){init();}
-
-// START
-init();
+function reset(){
+    init();
+}
 </script>
 
 </body>

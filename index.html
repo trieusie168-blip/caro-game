@@ -6,12 +6,12 @@
 
 <style>
 body{
-    margin:0;
-    font-family:Arial;
-    text-align:center;
-    color:white;
-    background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
-    no-repeat center/cover;
+    margin:0;
+    font-family:Arial;
+    text-align:center;
+    color:white;
+    background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
+    no-repeat center/cover;
 }
 
 h2{text-shadow:2px 2px 5px black;}
@@ -19,13 +19,13 @@ h2{text-shadow:2px 2px 5px black;}
 #controls{margin:10px;}
 
 button{
-    padding:7px 12px;
-    margin:4px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    background:#00c6ff;
-    font-weight:bold;
+    padding:7px 12px;
+    margin:4px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    background:#00c6ff;
+    font-weight:bold;
 }
 
 input{padding:6px;border-radius:6px;border:none;}
@@ -33,17 +33,17 @@ input{padding:6px;border-radius:6px;border:none;}
 #levelBox{display:none;margin-top:10px;}
 
 #board{
-    display:grid;
-    grid-template-columns:repeat(30,22px);
-    gap:3px;
-    justify-content:center;
+    display:grid;
+    grid-template-columns:repeat(30,22px);
+    gap:3px;
+    justify-content:center;
 }
 
 .cell{
-    width:22px;height:22px;
-    background:rgba(0,0,0,0.6);
-    line-height:22px;
-    cursor:pointer;
+    width:22px;height:22px;
+    background:rgba(0,0,0,0.6);
+    line-height:22px;
+    cursor:pointer;
 }
 
 .last{background:yellow !important;}
@@ -66,10 +66,10 @@ input{padding:6px;border-radius:6px;border:none;}
 <button onclick="chooseMode('2P')">👥 2 Người</button>
 
 <div id="levelBox">
-    <p>🎯 Chọn độ khó:</p>
-    <button onclick="setLevel('easy')">😊 Dễ</button>
-    <button onclick="setLevel('normal')">😐 Bình thường</button>
-    <button onclick="setLevel('hard')">😈 Khó</button>
+    <p>🎯 Chọn độ khó:</p>
+    <button onclick="setLevel('easy')">😊 Dễ</button>
+    <button onclick="setLevel('normal')">😐 Bình thường</button>
+    <button onclick="setLevel('hard')">😈 Khó</button>
 </div>
 
 <br>
@@ -91,207 +91,207 @@ const levelBox=document.getElementById("levelBox");
 
 // ===== START =====
 function start(){
-    player=document.getElementById("name").value || "Người chơi";
-    init();
+    player=document.getElementById("name").value || "Người chơi";
+    init();
 }
 
 // ===== INIT =====
 function init(){
-    board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
-    boardDiv.innerHTML="";
-    current="X";
-    gameOver=false;
+    board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
+    boardDiv.innerHTML="";
+    current="X";
+    gameOver=false;
 
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            let cell=document.createElement("div");
-            cell.className="cell";
-            cell.dataset.r=i;
-            cell.dataset.c=j;
-            cell.onclick=()=>move(i,j);
-            boardDiv.appendChild(cell);
-        }
-    }
-    updateInfo();
+    for(let i=0;i<SIZE;i++){
+        for(let j=0;j<SIZE;j++){
+            let cell=document.createElement("div");
+            cell.className="cell";
+            cell.dataset.r=i;
+            cell.dataset.c=j;
+            cell.onclick=()=>move(i,j);
+            boardDiv.appendChild(cell);
+        }
+    }
+    updateInfo();
 }
 
 // ===== MODE =====
 function chooseMode(m){
-    mode=m;
+    mode=m;
 
-    if(mode==="AI"){
-        levelBox.style.display="block";
-    }else{
-        levelBox.style.display="none";
-    }
+    if(mode==="AI"){
+        levelBox.style.display="block";
+    }else{
+        levelBox.style.display="none";
+    }
 
-    alert("Đã chọn chế độ: " + (mode==="AI"?"Đấu AI":"2 Người"));
+    alert("Đã chọn chế độ: " + (mode==="AI"?"Đấu AI":"2 Người"));
 }
 
 // ===== LEVEL =====
 function setLevel(lv){
-    difficulty=lv;
-    alert("Độ khó: " + lv);
+    difficulty=lv;
+    alert("Độ khó: " + lv);
 }
 
 // ===== MOVE =====
 function move(r,c){
-    if(board[r][c]!=="" || gameOver || !mode) return;
+    if(board[r][c]!=="" || gameOver || !mode) return;
 
-    board[r][c]=current;
-    last=[r,c];
-    updateUI();
+    board[r][c]=current;
+    last=[r,c];
+    updateUI();
 
-    if(checkWin(r,c,current)) return end(current);
+    if(checkWin(r,c,current)) return end(current);
 
-    if(mode==="2P"){
-        current = current==="X"?"O":"X";
-        updateInfo();
-    }
-    else{
-        if(current==="X"){
-            current="O";
-            updateInfo();
-            setTimeout(aiMove,500); // delay 0.5s
-        }
-    }
+    if(mode==="2P"){
+        current = current==="X"?"O":"X";
+        updateInfo();
+    }
+    else{
+        if(current==="X"){
+            current="O";
+            updateInfo();
+            setTimeout(aiMove,500); // delay 0.5s
+        }
+    }
 }
 
 // ===== AI =====
 function aiMove(){
 
-    let moves=[];
+    let moves=[];
 
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            if(board[i][j]===""){
-                moves.push({r:i,c:j,score:evaluate(i,j)});
-            }
-        }
-    }
+    for(let i=0;i<SIZE;i++){
+        for(let j=0;j<SIZE;j++){
+            if(board[i][j]===""){
+                moves.push({r:i,c:j,score:evaluate(i,j)});
+            }
+        }
+    }
 
-    if(moves.length===0) return;
+    if(moves.length===0) return;
 
-    // EASY
-    if(difficulty==="easy"){
-        let m=moves[Math.floor(Math.random()*moves.length)];
-        return placeAI(m);
-    }
+    // EASY
+    if(difficulty==="easy"){
+        let m=moves[Math.floor(Math.random()*moves.length)];
+        return placeAI(m);
+    }
 
-    moves.sort((a,b)=>b.score-a.score);
+    moves.sort((a,b)=>b.score-a.score);
 
-    // NORMAL
-    if(difficulty==="normal"){
-        let top=moves.slice(0,5);
-        let m=top[Math.floor(Math.random()*top.length)];
-        return placeAI(m);
-    }
+    // NORMAL
+    if(difficulty==="normal"){
+        let top=moves.slice(0,5);
+        let m=top[Math.floor(Math.random()*top.length)];
+        return placeAI(m);
+    }
 
-    // HARD (boss)
-    return placeAI(moves[0]);
+    // HARD (boss)
+    return placeAI(moves[0]);
 }
 
 // ===== PLACE AI =====
 function placeAI(m){
-    board[m.r][m.c]="O";
-    last=[m.r,m.c];
-    updateUI();
+    board[m.r][m.c]="O";
+    last=[m.r,m.c];
+    updateUI();
 
-    if(checkWin(m.r,m.c,"O")) return end("O");
+    if(checkWin(m.r,m.c,"O")) return end("O");
 
-    current="X";
-    updateInfo();
+    current="X";
+    updateInfo();
 }
 
 // ===== AI LOGIC =====
 function evaluate(r,c){
-    return score(r,c,"O")*2 + score(r,c,"X")*2;
+    return score(r,c,"O")*2 + score(r,c,"X")*2;
 }
 
 function score(r,c,p){
-    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
-    let total=0;
+    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    let total=0;
 
-    for(let [dr,dc] of dirs){
-        let count=1;
+    for(let [dr,dc] of dirs){
+        let count=1;
 
-        for(let i=1;i<5;i++){
-            let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) count++;
-            else break;
-        }
+        for(let i=1;i<5;i++){
+            let nr=r+dr*i,nc=c+dc*i;
+            if(board[nr]?.[nc]==p) count++;
+            else break;
+        }
 
-        for(let i=1;i<5;i++){
-            let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) count++;
-            else break;
-        }
+        for(let i=1;i<5;i++){
+            let nr=r-dr*i,nc=c-dc*i;
+            if(board[nr]?.[nc]==p) count++;
+            else break;
+        }
 
-        if(count>=5) total+=100000;
-        else if(count==4) total+=10000;
-        else if(count==3) total+=1000;
-        else if(count==2) total+=100;
-    }
+        if(count>=5) total+=100000;
+        else if(count==4) total+=10000;
+        else if(count==3) total+=1000;
+        else if(count==2) total+=100;
+    }
 
-    return total;
+    return total;
 }
 
 // ===== WIN =====
 function checkWin(r,c,p){
-    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
 
-    for(let [dr,dc] of dirs){
-        let count=1;
+    for(let [dr,dc] of dirs){
+        let count=1;
 
-        for(let i=1;i<5;i++){
-            if(board[r+dr*i]?.[c+dc*i]===p) count++;
-            else break;
-        }
-        for(let i=1;i<5;i++){
-            if(board[r-dr*i]?.[c-dc*i]===p) count++;
-            else break;
-        }
+        for(let i=1;i<5;i++){
+            if(board[r+dr*i]?.[c+dc*i]===p) count++;
+            else break;
+        }
+        for(let i=1;i<5;i++){
+            if(board[r-dr*i]?.[c-dc*i]===p) count++;
+            else break;
+        }
 
-        if(count>=5) return true;
-    }
-    return false;
+        if(count>=5) return true;
+    }
+    return false;
 }
 
 // ===== UI =====
 function updateUI(){
-    document.querySelectorAll(".cell").forEach(cell=>{
-        let r=cell.dataset.r,c=cell.dataset.c;
-        cell.innerText=board[r][c];
-        cell.classList.remove("last");
+    document.querySelectorAll(".cell").forEach(cell=>{
+        let r=cell.dataset.r,c=cell.dataset.c;
+        cell.innerText=board[r][c];
+        cell.classList.remove("last");
 
-        if(last && r==last[0] && c==last[1]){
-            cell.classList.add("last");
-        }
-    });
+        if(last && r==last[0] && c==last[1]){
+            cell.classList.add("last");
+        }
+    });
 }
 
 function updateInfo(){
-    info.innerText =
-    "👤 "+player+
-    " | Mode: "+(mode||"Chưa chọn")+
-    " | Level: "+difficulty+
-    " | Lượt: "+current;
+    info.innerText =
+    "👤 "+player+
+    " | Mode: "+(mode||"Chưa chọn")+
+    " | Level: "+difficulty+
+    " | Lượt: "+current;
 }
 
 // ===== END =====
 function end(p){
-    gameOver=true;
+    gameOver=true;
 
-    let msg = (mode==="AI")
-        ? (p==="X"? player+" thắng!" : "AI thắng!")
-        : p+" thắng!";
+    let msg = (mode==="AI")
+        ? (p==="X"? player+" thắng!" : "AI thắng!")
+        : p+" thắng!";
 
-    setTimeout(()=>alert(msg),200);
+    setTimeout(()=>alert(msg),200);
 }
 
 // ===== RESET =====
 function reset(){
-    init();
+    init();
 }
 </script>
 

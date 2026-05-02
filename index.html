@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO AI FINAL+</title>
+<title>CARO PRO FINAL UI</title>
 
 <style>
 body{
@@ -35,36 +35,45 @@ h1{text-shadow:2px 2px 5px black;}
 .win{background:lime !important;}
 
 button{margin:5px;padding:6px;}
+.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
-<h1>🤖 CARO AI</h1>
+<h1>🤖 CARO PRO</h1>
 
-<input id="name" placeholder="Tên bạn">
-<button onclick="start()">Start</button>
+<!-- STEP 1 -->
+<div id="step1">
+<input id="name" placeholder="Nhập tên...">
+<button onclick="nextStep(2)">Tiếp</button>
+</div>
 
-<br>
+<!-- STEP 2 -->
+<div id="step2" class="hidden">
+<p>Chọn chế độ:</p>
+<button onclick="chooseMode('AI')">🤖 AI</button>
+<button onclick="chooseMode('2P')">👥 2 Người</button>
+</div>
 
-<button onclick="setMode('AI')">AI</button>
-<button onclick="setMode('2P')">2 Người</button>
+<!-- STEP 3 -->
+<div id="step3" class="hidden">
+<p>Chọn độ khó:</p>
+<button onclick="chooseLevel('easy')">Dễ</button>
+<button onclick="chooseLevel('normal')">BT</button>
+<button onclick="chooseLevel('hard')">Khó</button>
+</div>
 
-<br>
+<!-- STEP 4 -->
+<div id="step4" class="hidden">
+<p>Chọn lượt:</p>
+<button onclick="chooseSide('X')">Đi trước</button>
+<button onclick="chooseSide('O')">Đi sau</button>
+</div>
 
-<button onclick="setLevel('easy')">Dễ</button>
-<button onclick="setLevel('normal')">BT</button>
-<button onclick="setLevel('hard')">Khó</button>
+<button onclick="startGame()" class="hidden" id="startBtn">🚀 Bắt đầu</button>
 
-<br>
-
-<b>Chọn lượt:</b>
-<button onclick="setPlayerSide('X')">Đi trước (X)</button>
-<button onclick="setPlayerSide('O')">Đi sau (O)</button>
-
-<br>
-
-<button onclick="reset()">Reset</button>
+<br><br>
 
 <div id="info"></div>
 <div id="board"></div>
@@ -72,15 +81,43 @@ button{margin:5px;padding:6px;}
 <script>
 const SIZE=30;
 
-let board=[],current="X",mode="AI",difficulty="normal";
+let board=[],current="X",mode="",difficulty="",playerSide="X";
 let last=null,gameOver=false,player="";
-let playerSide="X"; // X = đi trước, O = đi sau
 
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
 
+// ===== UI FLOW =====
+function nextStep(step){
+    document.getElementById("step1").classList.add("hidden");
+    document.getElementById("step2").classList.remove("hidden");
+}
+
+function chooseMode(m){
+    mode=m;
+    document.getElementById("step2").classList.add("hidden");
+
+    if(mode==="AI"){
+        document.getElementById("step3").classList.remove("hidden");
+    }else{
+        document.getElementById("step4").classList.remove("hidden");
+    }
+}
+
+function chooseLevel(l){
+    difficulty=l;
+    document.getElementById("step3").classList.add("hidden");
+    document.getElementById("step4").classList.remove("hidden");
+}
+
+function chooseSide(s){
+    playerSide=s;
+    document.getElementById("step4").classList.add("hidden");
+    document.getElementById("startBtn").classList.remove("hidden");
+}
+
 // ===== START =====
-function start(){
+function startGame(){
     player=document.getElementById("name").value||"Người chơi";
     init();
 }
@@ -89,9 +126,8 @@ function start(){
 function init(){
     board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
     boardDiv.innerHTML="";
+    current="X";
     gameOver=false;
-
-    current = "X"; // luôn bắt đầu từ X
 
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
@@ -106,22 +142,19 @@ function init(){
 
     updateInfo();
 
-    // Nếu người chơi chọn O → AI đi trước
+    // Nếu AI đi trước → đi giữa
     if(mode==="AI" && playerSide==="O"){
-        setTimeout(aiMove,400);
+        setTimeout(()=>{
+            let mid=Math.floor(SIZE/2);
+            placeAI({r:mid,c:mid});
+        },400);
     }
 }
-
-// ===== SET =====
-function setMode(m){mode=m;}
-function setLevel(l){difficulty=l;}
-function setPlayerSide(s){playerSide=s;}
 
 // ===== MOVE =====
 function move(r,c){
     if(board[r][c]!==""||gameOver) return;
 
-    // Nếu chơi AI, chỉ cho click khi tới lượt mình
     if(mode==="AI" && current!==playerSide) return;
 
     place(r,c,current);
@@ -165,7 +198,11 @@ function aiMove(){
         }
     }
 
-    if(moves.length===0) return;
+    // nếu bàn trống → đi giữa
+    if(moves.length===SIZE*SIZE){
+        let mid=Math.floor(SIZE/2);
+        return placeAI({r:mid,c:mid});
+    }
 
     // thắng ngay
     for(let m of moves){
@@ -212,7 +249,7 @@ function placeAI(m){
     updateInfo();
 }
 
-// ===== AI LOGIC =====
+// ===== LOGIC =====
 function evaluate(r,c){
     return score(r,c,"O")*2 + score(r,c,"X")*3;
 }
@@ -227,27 +264,18 @@ function score(r,c,p){
         for(let i=1;i<5;i++){
             let nr=r+dr*i,nc=c+dc*i;
             if(board[nr]?.[nc]==p) count++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
-                break;
-            }
+            else{ if(board[nr]?.[nc]=="") open++; break; }
         }
 
         for(let i=1;i<5;i++){
             let nr=r-dr*i,nc=c-dc*i;
             if(board[nr]?.[nc]==p) count++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
-                break;
-            }
+            else{ if(board[nr]?.[nc]=="") open++; break; }
         }
 
         if(count>=5) total+=1000000;
         else if(count==4 && open==2) total+=200000;
-        else if(count==4) total+=50000;
         else if(count==3 && open==2) total+=20000;
-        else if(count==3) total+=5000;
-        else if(count==2) total+=1000;
     }
 
     return total;
@@ -288,8 +316,7 @@ function end(cells,p){
 
     setTimeout(()=>{
         if(mode==="AI"){
-            if(p===playerSide) alert(player+" thắng!");
-            else alert("AI thắng!");
+            alert(p===playerSide ? player+" thắng!" : "AI thắng!");
         }else{
             alert(p+" thắng!");
         }
@@ -310,15 +337,8 @@ function updateUI(){
 }
 
 function updateInfo(){
-    info.innerText=
-        player+" | Mode:"+mode+
-        " | Level:"+difficulty+
-        " | Bạn chơi:"+playerSide+
-        " | Lượt:"+current;
+    info.innerText=`${player} | ${mode} | ${difficulty} | Lượt:${current}`;
 }
-
-// ===== RESET =====
-function reset(){init();}
 </script>
 
 </body>

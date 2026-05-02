@@ -2,6 +2,7 @@ function aiMove(){
 
     let moves=[];
 
+    // Lấy tất cả nước đi + tính điểm
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
             if(board[i][j]===""){
@@ -14,41 +15,45 @@ function aiMove(){
         }
     }
 
-    // 1. THẮNG NGAY
+    if(moves.length===0) return;
+
+    // ===== 1. THẮNG NGAY =====
     for(let m of moves){
-        board[m.r][m.c]="O";
+        board[m.r][m.c] = "O";
         if(checkWin(m.r,m.c,"O")){
-            board[m.r][m.c]="";
+            board[m.r][m.c] = "";
             return placeAI(m);
         }
-        board[m.r][m.c]="";
+        board[m.r][m.c] = "";
     }
 
-    // 2. CHẶN NGAY
+    // ===== 2. CHẶN NGAY =====
     for(let m of moves){
-        board[m.r][m.c]="X";
+        board[m.r][m.c] = "X";
         if(checkWin(m.r,m.c,"X")){
-            board[m.r][m.c]="";
+            board[m.r][m.c] = "";
             return placeAI(m);
         }
-        board[m.r][m.c]="";
+        board[m.r][m.c] = "";
     }
 
-    // 3. BẪY KÉP (DOUBLE THREAT)
-    let trap = findDoubleThreatMove(moves);
-    if(trap) return placeAI(trap);
-
-    // 4. CHỌN NƯỚC TỐT NHẤT
+    // ===== 3. SẮP XẾP =====
     moves.sort((a,b)=>b.score-a.score);
 
+    // ===== 4. CHỌN THEO LEVEL =====
     if(difficulty==="easy"){
-        return placeAI(moves[Math.floor(Math.random()*moves.length)]);
+        return placeAI(
+            moves[Math.floor(Math.random()*moves.length)]
+        );
     }
 
     if(difficulty==="normal"){
-        let top=moves.slice(0,5);
-        return placeAI(top[Math.floor(Math.random()*top.length)]);
+        let top = moves.slice(0,5);
+        return placeAI(
+            top[Math.floor(Math.random()*top.length)]
+        );
     }
 
-    return placeAI(moves[0]); // HARD
+    // HARD
+    return placeAI(moves[0]);
 }

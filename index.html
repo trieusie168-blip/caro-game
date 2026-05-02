@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO AI BOSS</title>
+<title>CARO PRO MAX</title>
 
 <style>
 body{
@@ -13,18 +13,36 @@ body{
     background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
     no-repeat center/cover;
 }
+
+h2{text-shadow:2px 2px 5px black;}
+
+#controls{margin:10px;}
+
+button{
+    padding:6px 10px;
+    margin:3px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    background:#00c6ff;
+}
+
+input{padding:5px;border-radius:5px;border:none;}
+
 #board{
     display:grid;
     grid-template-columns:repeat(30,22px);
     gap:3px;
     justify-content:center;
 }
+
 .cell{
     width:22px;height:22px;
     background:rgba(0,0,0,0.6);
     line-height:22px;
     cursor:pointer;
 }
+
 .last{background:yellow !important;}
 .win{background:lime !important;}
 </style>
@@ -32,17 +50,31 @@ body{
 
 <body>
 
-<h2>🏖️ CARO AI BOSS</h2>
+<h2>🏖️ CARO PRO MAX</h2>
 
-<input id="name" placeholder="Tên bạn">
+<div id="controls">
+<input id="name" placeholder="Tên người chơi">
 <button onclick="start()">Bắt đầu</button>
+
+<br>
+
+<button onclick="setMode('AI')">🤖 AI</button>
+<button onclick="setMode('2P')">👥 2 Người</button>
+
+<button onclick="setLevel('easy')">😊</button>
+<button onclick="setLevel('normal')">😐</button>
+<button onclick="setLevel('hard')">😈</button>
+
+<button onclick="reset()">🔄 Reset</button>
+</div>
 
 <div id="info"></div>
 <div id="board"></div>
 
 <script>
 const SIZE=30;
-let board=[],current="X",gameOver=false,last=null,player="";
+let board=[],current="X",mode="AI",difficulty="normal";
+let gameOver=false,last=null,player="";
 
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
@@ -57,6 +89,7 @@ function start(){
 function init(){
     board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
     boardDiv.innerHTML="";
+    current="X";
     gameOver=false;
 
     for(let i=0;i<SIZE;i++){
@@ -69,41 +102,74 @@ function init(){
             boardDiv.appendChild(cell);
         }
     }
+    updateInfo();
 }
+
+// ===== MODE =====
+function setMode(m){mode=m;alert("Mode: "+m);}
+function setLevel(lv){difficulty=lv;alert("Level: "+lv);}
 
 // ===== MOVE =====
 function move(r,c){
     if(board[r][c]!==""||gameOver) return;
 
-    board[r][c]="X";
+    board[r][c]=current;
     last=[r,c];
     updateUI();
 
-    if(checkWin(r,c,"X")) return end("Bạn thắng!");
+    if(checkWin(r,c,current)) return end(current);
 
-    setTimeout(aiMove,500);
+    if(mode==="2P"){
+        current=current==="X"?"O":"X";
+        updateInfo();
+    }else{
+        if(current==="X"){
+            current="O";
+            updateInfo();
+            setTimeout(aiMove,500);
+        }
+    }
 }
 
 // ===== AI =====
 function aiMove(){
-    let best = minimax(2, true, -Infinity, Infinity);
-    let m = best.move;
 
-    if(!m) return;
+    // EASY
+    if(difficulty==="easy"){
+        let moves=getMoves();
+        return placeAI(moves[Math.floor(Math.random()*moves.length)]);
+    }
 
+    // NORMAL
+    if(difficulty==="normal"){
+        let moves=getMoves();
+        moves.sort((a,b)=>evaluate(b.r,b.c)-evaluate(a.r,a.c));
+        let top=moves.slice(0,5);
+        return placeAI(top[Math.floor(Math.random()*top.length)]);
+    }
+
+    // HARD = MINIMAX
+    let best=minimax(2,true,-Infinity,Infinity);
+    if(best.move) placeAI(best.move);
+}
+
+// ===== PLACE =====
+function placeAI(m){
     board[m.r][m.c]="O";
     last=[m.r,m.c];
     updateUI();
 
-    if(checkWin(m.r,m.c,"O")) return end("AI thắng!");
+    if(checkWin(m.r,m.c,"O")) return end("O");
+
+    current="X";
+    updateInfo();
 }
 
 // ===== MINIMAX =====
-function minimax(depth, isMax, alpha, beta){
+function minimax(depth,isMax,alpha,beta){
     if(depth===0) return {score:evaluateBoard()};
 
-    let moves = getMoves();
-
+    let moves=getMoves();
     let bestMove=null;
 
     if(isMax){
@@ -113,11 +179,7 @@ function minimax(depth, isMax, alpha, beta){
             let score=minimax(depth-1,false,alpha,beta).score;
             board[m.r][m.c]="";
 
-            if(score>max){
-                max=score;
-                bestMove=m;
-            }
-
+            if(score>max){max=score;bestMove=m;}
             alpha=Math.max(alpha,score);
             if(beta<=alpha) break;
         }
@@ -129,11 +191,7 @@ function minimax(depth, isMax, alpha, beta){
             let score=minimax(depth-1,true,alpha,beta).score;
             board[m.r][m.c]="";
 
-            if(score<min){
-                min=score;
-                bestMove=m;
-            }
-
+            if(score<min){min=score;bestMove=m;}
             beta=Math.min(beta,score);
             if(beta<=alpha) break;
         }
@@ -141,7 +199,7 @@ function minimax(depth, isMax, alpha, beta){
     }
 }
 
-// ===== TỐI ƯU NƯỚC ĐI =====
+// ===== MOVE FILTER =====
 function getMoves(){
     let moves=[];
     for(let i=0;i<SIZE;i++){
@@ -163,9 +221,9 @@ function near(r,c){
     return false;
 }
 
-// ===== HEURISTIC =====
+// ===== EVAL =====
 function evaluateBoard(){
-    return scoreAll("O") - scoreAll("X");
+    return scoreAll("O")-scoreAll("X");
 }
 
 function scoreAll(p){
@@ -197,7 +255,6 @@ function checkWin(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
     for(let [dr,dc] of dirs){
         let count=1;
-
         for(let i=1;i<5;i++){
             if(board[r+dr*i]?.[c+dc*i]===p) count++;
             else break;
@@ -206,7 +263,6 @@ function checkWin(r,c,p){
             if(board[r-dr*i]?.[c-dc*i]===p) count++;
             else break;
         }
-
         if(count>=5) return true;
     }
     return false;
@@ -225,9 +281,26 @@ function updateUI(){
     });
 }
 
-function end(msg){
+function updateInfo(){
+    info.innerText =
+    "👤 "+player+
+    " | Mode: "+mode+
+    " | Level: "+difficulty+
+    " | Lượt: "+current;
+}
+
+// ===== END =====
+function end(p){
     gameOver=true;
+    let msg = (mode==="AI")
+        ? (p==="X"? player+" thắng!" : "AI thắng!")
+        : p+" thắng!";
     setTimeout(()=>alert(msg),200);
+}
+
+// ===== RESET =====
+function reset(){
+    init();
 }
 </script>
 

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO STABLE+</title>
+<title>CARO PRO</title>
 
 <style>
 body{
@@ -16,6 +16,8 @@ body{
 
 h2{text-shadow:2px 2px 5px black;}
 
+#controls{margin:10px;}
+
 button{
     padding:7px 12px;
     margin:4px;
@@ -23,86 +25,73 @@ button{
     border-radius:6px;
     cursor:pointer;
     background:#00c6ff;
+    font-weight:bold;
 }
 
 input{padding:6px;border-radius:6px;border:none;}
 
-#levelBox{display:none;}
+#levelBox{display:none;margin-top:10px;}
 
 #board{
     display:grid;
-    grid-template-columns:repeat(20,28px);
+    grid-template-columns:repeat(30,22px);
     gap:3px;
     justify-content:center;
 }
 
 .cell{
-    width:28px;height:28px;
+    width:22px;height:22px;
     background:rgba(0,0,0,0.6);
-    line-height:28px;
+    line-height:22px;
     cursor:pointer;
-    font-size:16px;
-    transition:0.2s;
 }
-
-.cell:hover{background:#555;}
 
 .last{background:yellow !important;}
 .win{background:lime !important;}
-
-#score{margin-top:10px;}
 </style>
 </head>
 
 <body>
 
-<h2>🏖️ CARO STABLE+</h2>
+<h2>🏖️ CARO PRO</h2>
 
-<input id="name" placeholder="Nhập tên">
+<div id="controls">
+
+<input id="name" placeholder="Nhập tên...">
 <button onclick="start()">Bắt đầu</button>
 
 <br>
 
-<button onclick="chooseMode('AI')">🤖 AI</button>
+<button onclick="chooseMode('AI')">🤖 Đấu AI</button>
 <button onclick="chooseMode('2P')">👥 2 Người</button>
 
 <div id="levelBox">
-    <p>Chọn độ khó:</p>
-    <button onclick="setLevel('easy')">Dễ</button>
-    <button onclick="setLevel('normal')">Bình thường</button>
-    <button onclick="setLevel('hard')">Khó</button>
+    <p>🎯 Chọn độ khó:</p>
+    <button onclick="setLevel('easy')">😊 Dễ</button>
+    <button onclick="setLevel('normal')">😐 Bình thường</button>
+    <button onclick="setLevel('hard')">😈 Khó</button>
 </div>
 
 <br>
-<button onclick="reset()">Reset</button>
+<button onclick="reset()">🔄 Reset</button>
+
+</div>
 
 <div id="info"></div>
-<div id="score"></div>
 <div id="board"></div>
 
-<!-- SOUND -->
-<audio id="clickSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b64d2.mp3"></audio>
-<audio id="winSound" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_9f5c6c93b3.mp3"></audio>
-
 <script>
-const SIZE=20;
-
+const SIZE=30;
 let board=[],current="X",mode="",difficulty="normal";
-let player="Người chơi",gameOver=false,last=null;
-let score={win:0,lose:0,draw:0};
+let gameOver=false,last=null,player="";
 
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
 const levelBox=document.getElementById("levelBox");
-const scoreDiv=document.getElementById("score");
-
-const clickSound=document.getElementById("clickSound");
-const winSound=document.getElementById("winSound");
 
 // ===== START =====
 function start(){
-    player=document.getElementById("name").value || localStorage.getItem("player") || "Người chơi";
-    localStorage.setItem("player",player);
+    player=document.getElementById("name").value || "Người chơi";
     init();
 }
 
@@ -124,46 +113,55 @@ function init(){
         }
     }
     updateInfo();
-    updateScore();
 }
 
 // ===== MODE =====
 function chooseMode(m){
     mode=m;
-    levelBox.style.display=(m==="AI")?"block":"none";
+
+    if(mode==="AI"){
+        levelBox.style.display="block";
+    }else{
+        levelBox.style.display="none";
+    }
+
+    alert("Đã chọn chế độ: " + (mode==="AI"?"Đấu AI":"2 Người"));
 }
 
 // ===== LEVEL =====
-function setLevel(lv){difficulty=lv;}
+function setLevel(lv){
+    difficulty=lv;
+    alert("Độ khó: " + lv);
+}
 
 // ===== MOVE =====
 function move(r,c){
-    if(board[r][c]!==""||gameOver||!mode) return;
-
-    playClick();
+    if(board[r][c]!=="" || gameOver || !mode) return;
 
     board[r][c]=current;
     last=[r,c];
     updateUI();
 
-    let winCells=checkWin(r,c,current);
-    if(winCells) return end(current,winCells);
+    if(checkWin(r,c,current)) return end(current);
 
     if(mode==="2P"){
-        current=current==="X"?"O":"X";
+        current = current==="X"?"O":"X";
         updateInfo();
-    }else{
+    }
+    else{
         if(current==="X"){
             current="O";
             updateInfo();
-            setTimeout(aiMove,500);
+            setTimeout(aiMove,500); // delay 0.5s
         }
     }
 }
 
 // ===== AI =====
 function aiMove(){
+
     let moves=[];
+
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
             if(board[i][j]===""){
@@ -172,29 +170,34 @@ function aiMove(){
         }
     }
 
+    if(moves.length===0) return;
+
+    // EASY
     if(difficulty==="easy"){
-        return placeAI(random(moves));
+        let m=moves[Math.floor(Math.random()*moves.length)];
+        return placeAI(m);
     }
 
     moves.sort((a,b)=>b.score-a.score);
 
+    // NORMAL
     if(difficulty==="normal"){
         let top=moves.slice(0,5);
-        return placeAI(random(top));
+        let m=top[Math.floor(Math.random()*top.length)];
+        return placeAI(m);
     }
 
+    // HARD (boss)
     return placeAI(moves[0]);
 }
 
-// ===== PLACE =====
+// ===== PLACE AI =====
 function placeAI(m){
-    playClick();
     board[m.r][m.c]="O";
     last=[m.r,m.c];
     updateUI();
 
-    let winCells=checkWin(m.r,m.c,"O");
-    if(winCells) return end("O",winCells);
+    if(checkWin(m.r,m.c,"O")) return end("O");
 
     current="X";
     updateInfo();
@@ -202,10 +205,10 @@ function placeAI(m){
 
 // ===== AI LOGIC =====
 function evaluate(r,c){
-    return scoreLine(r,c,"O")*2 + scoreLine(r,c,"X")*3;
+    return score(r,c,"O")*2 + score(r,c,"X")*2;
 }
 
-function scoreLine(r,c,p){
+function score(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
     let total=0;
 
@@ -213,12 +216,14 @@ function scoreLine(r,c,p){
         let count=1;
 
         for(let i=1;i<5;i++){
-            if(board[r+dr*i]?.[c+dc*i]===p) count++;
+            let nr=r+dr*i,nc=c+dc*i;
+            if(board[nr]?.[nc]==p) count++;
             else break;
         }
 
         for(let i=1;i<5;i++){
-            if(board[r-dr*i]?.[c-dc*i]===p) count++;
+            let nr=r-dr*i,nc=c-dc*i;
+            if(board[nr]?.[nc]==p) count++;
             else break;
         }
 
@@ -236,41 +241,20 @@ function checkWin(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
 
     for(let [dr,dc] of dirs){
-        let cells=[[r,c]];
+        let count=1;
 
         for(let i=1;i<5;i++){
-            if(board[r+dr*i]?.[c+dc*i]===p) cells.push([r+dr*i,c+dc*i]);
+            if(board[r+dr*i]?.[c+dc*i]===p) count++;
+            else break;
+        }
+        for(let i=1;i<5;i++){
+            if(board[r-dr*i]?.[c-dc*i]===p) count++;
             else break;
         }
 
-        for(let i=1;i<5;i++){
-            if(board[r-dr*i]?.[c-dc*i]===p) cells.unshift([r-dr*i,c-dc*i]);
-            else break;
-        }
-
-        if(cells.length>=5) return cells;
+        if(count>=5) return true;
     }
-    return null;
-}
-
-// ===== END =====
-function end(p,cells){
-    gameOver=true;
-    winSound.play();
-
-    cells.forEach(([r,c])=>{
-        document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`).classList.add("win");
-    });
-
-    if(mode==="AI"){
-        if(p==="X") score.win++;
-        else score.lose++;
-    }
-
-    updateScore();
-
-    let msg=(mode==="AI")?(p==="X"?player+" thắng!":"AI thắng!"):(p+" thắng!");
-    setTimeout(()=>alert(msg),200);
+    return false;
 }
 
 // ===== UI =====
@@ -287,19 +271,28 @@ function updateUI(){
 }
 
 function updateInfo(){
-    info.innerText=`${player} | Mode:${mode||"?"} | Level:${difficulty} | Lượt:${current}`;
+    info.innerText =
+    "👤 "+player+
+    " | Mode: "+(mode||"Chưa chọn")+
+    " | Level: "+difficulty+
+    " | Lượt: "+current;
 }
 
-function updateScore(){
-    scoreDiv.innerText=`🏆 Thắng:${score.win} | Thua:${score.lose}`;
-}
+// ===== END =====
+function end(p){
+    gameOver=true;
 
-// ===== UTIL =====
-function random(arr){return arr[Math.floor(Math.random()*arr.length)];}
-function playClick(){clickSound.currentTime=0;clickSound.play();}
+    let msg = (mode==="AI")
+        ? (p==="X"? player+" thắng!" : "AI thắng!")
+        : p+" thắng!";
+
+    setTimeout(()=>alert(msg),200);
+}
 
 // ===== RESET =====
-function reset(){init();}
+function reset(){
+    init();
+}
 </script>
 
 </body>

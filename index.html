@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO PRO FINAL UI</title>
+<title>CARO FIX TURN</title>
 
 <style>
 body{
@@ -13,67 +13,52 @@ body{
     background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
     no-repeat center/cover;
 }
-
-h1{text-shadow:2px 2px 5px black;}
-
 #board{
     display:grid;
     grid-template-columns:repeat(30,22px);
     gap:2px;
     justify-content:center;
 }
-
 .cell{
     width:22px;height:22px;
     background:rgba(0,0,0,0.6);
     line-height:22px;
     cursor:pointer;
 }
-
 .cell:hover{background:#555;}
-.last{background:yellow !important;}
-.win{background:lime !important;}
-
-button{margin:5px;padding:6px;}
+.last{background:yellow;}
+.win{background:lime;}
 .hidden{display:none;}
+button{margin:5px;}
 </style>
 </head>
 
 <body>
 
-<h1>🤖 CARO PRO</h1>
+<h1>🤖 CARO FIX</h1>
 
-<!-- STEP 1 -->
 <div id="step1">
-<input id="name" placeholder="Nhập tên...">
-<button onclick="nextStep(2)">Tiếp</button>
+<input id="name" placeholder="Tên...">
+<button onclick="nextStep()">Tiếp</button>
 </div>
 
-<!-- STEP 2 -->
 <div id="step2" class="hidden">
-<p>Chọn chế độ:</p>
-<button onclick="chooseMode('AI')">🤖 AI</button>
-<button onclick="chooseMode('2P')">👥 2 Người</button>
+<button onclick="chooseMode('AI')">AI</button>
+<button onclick="chooseMode('2P')">2 Người</button>
 </div>
 
-<!-- STEP 3 -->
 <div id="step3" class="hidden">
-<p>Chọn độ khó:</p>
 <button onclick="chooseLevel('easy')">Dễ</button>
 <button onclick="chooseLevel('normal')">BT</button>
 <button onclick="chooseLevel('hard')">Khó</button>
 </div>
 
-<!-- STEP 4 -->
 <div id="step4" class="hidden">
-<p>Chọn lượt:</p>
 <button onclick="chooseSide('X')">Đi trước</button>
 <button onclick="chooseSide('O')">Đi sau</button>
 </div>
 
-<button onclick="startGame()" class="hidden" id="startBtn">🚀 Bắt đầu</button>
-
-<br><br>
+<button id="startBtn" class="hidden" onclick="startGame()">Start</button>
 
 <div id="info"></div>
 <div id="board"></div>
@@ -87,38 +72,35 @@ let last=null,gameOver=false,player="";
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
 
-// ===== UI FLOW =====
-function nextStep(step){
-    document.getElementById("step1").classList.add("hidden");
-    document.getElementById("step2").classList.remove("hidden");
+// ===== UI =====
+function nextStep(){
+    step1.classList.add("hidden");
+    step2.classList.remove("hidden");
 }
 
 function chooseMode(m){
     mode=m;
-    document.getElementById("step2").classList.add("hidden");
+    step2.classList.add("hidden");
 
-    if(mode==="AI"){
-        document.getElementById("step3").classList.remove("hidden");
-    }else{
-        document.getElementById("step4").classList.remove("hidden");
-    }
+    if(mode==="AI") step3.classList.remove("hidden");
+    else step4.classList.remove("hidden");
 }
 
 function chooseLevel(l){
     difficulty=l;
-    document.getElementById("step3").classList.add("hidden");
-    document.getElementById("step4").classList.remove("hidden");
+    step3.classList.add("hidden");
+    step4.classList.remove("hidden");
 }
 
 function chooseSide(s){
     playerSide=s;
-    document.getElementById("step4").classList.add("hidden");
-    document.getElementById("startBtn").classList.remove("hidden");
+    step4.classList.add("hidden");
+    startBtn.classList.remove("hidden");
 }
 
 // ===== START =====
 function startGame(){
-    player=document.getElementById("name").value||"Người chơi";
+    player=document.getElementById("name").value||"Player";
     init();
 }
 
@@ -142,12 +124,18 @@ function init(){
 
     updateInfo();
 
-    // Nếu AI đi trước → đi giữa
+    // FIX CHÍNH Ở ĐÂY
     if(mode==="AI" && playerSide==="O"){
         setTimeout(()=>{
             let mid=Math.floor(SIZE/2);
-            placeAI({r:mid,c:mid});
-        },400);
+
+            board[mid][mid]="X";
+            last=[mid,mid];
+            updateUI();
+
+            current="O"; // 🔥 QUAN TRỌNG
+            updateInfo();
+        },300);
     }
 }
 
@@ -165,7 +153,7 @@ function move(r,c){
     if(mode==="2P"){
         current=current==="X"?"O":"X";
     }else{
-        current = (current==="X")?"O":"X";
+        current="O";
         setTimeout(aiMove,300);
     }
 
@@ -181,7 +169,6 @@ function place(r,c,p){
 
 // ===== AI =====
 function aiMove(){
-
     if(gameOver) return;
 
     let moves=[];
@@ -189,57 +176,15 @@ function aiMove(){
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
             if(board[i][j]===""){
-                moves.push({
-                    r:i,
-                    c:j,
-                    score:evaluate(i,j)
-                });
+                moves.push({r:i,c:j,score:evaluate(i,j)});
             }
         }
     }
 
-    // nếu bàn trống → đi giữa
-    if(moves.length===SIZE*SIZE){
-        let mid=Math.floor(SIZE/2);
-        return placeAI({r:mid,c:mid});
-    }
-
-    // thắng ngay
-    for(let m of moves){
-        board[m.r][m.c]="O";
-        if(checkWin(m.r,m.c,"O")){
-            board[m.r][m.c]="";
-            return placeAI(m);
-        }
-        board[m.r][m.c]="";
-    }
-
-    // chặn ngay
-    for(let m of moves){
-        board[m.r][m.c]="X";
-        if(checkWin(m.r,m.c,"X")){
-            board[m.r][m.c]="";
-            return placeAI(m);
-        }
-        board[m.r][m.c]="";
-    }
-
     moves.sort((a,b)=>b.score-a.score);
 
-    if(difficulty==="easy"){
-        return placeAI(moves[Math.floor(Math.random()*moves.length)]);
-    }
+    let m=moves[0];
 
-    if(difficulty==="normal"){
-        let top=moves.slice(0,5);
-        return placeAI(top[Math.floor(Math.random()*top.length)]);
-    }
-
-    return placeAI(moves[0]);
-}
-
-// ===== AI SUPPORT =====
-function placeAI(m){
     place(m.r,m.c,"O");
 
     let win=checkWin(m.r,m.c,"O");
@@ -259,25 +204,21 @@ function score(r,c,p){
     let total=0;
 
     for(let [dr,dc] of dirs){
-        let count=1,open=0;
+        let count=1;
 
         for(let i=1;i<5;i++){
-            let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) count++;
-            else{ if(board[nr]?.[nc]=="") open++; break; }
+            if(board[r+dr*i]?.[c+dc*i]==p) count++;
+            else break;
         }
-
         for(let i=1;i<5;i++){
-            let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) count++;
-            else{ if(board[nr]?.[nc]=="") open++; break; }
+            if(board[r-dr*i]?.[c-dc*i]==p) count++;
+            else break;
         }
 
-        if(count>=5) total+=1000000;
-        else if(count==4 && open==2) total+=200000;
-        else if(count==3 && open==2) total+=20000;
+        if(count>=5) total+=100000;
+        else if(count==4) total+=10000;
+        else if(count==3) total+=1000;
     }
-
     return total;
 }
 
@@ -286,40 +227,27 @@ function checkWin(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
 
     for(let [dr,dc] of dirs){
-        let cells=[[r,c]];
+        let count=1;
 
         for(let i=1;i<5;i++){
-            let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) cells.push([nr,nc]);
+            if(board[r+dr*i]?.[c+dc*i]==p) count++;
+            else break;
+        }
+        for(let i=1;i<5;i++){
+            if(board[r-dr*i]?.[c-dc*i]==p) count++;
             else break;
         }
 
-        for(let i=1;i<5;i++){
-            let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) cells.unshift([nr,nc]);
-            else break;
-        }
-
-        if(cells.length>=5) return cells;
+        if(count>=5) return true;
     }
-    return null;
+    return false;
 }
 
 // ===== END =====
-function end(cells,p){
+function end(_,p){
     gameOver=true;
-
-    cells.forEach(([r,c])=>{
-        document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`)
-        .classList.add("win");
-    });
-
     setTimeout(()=>{
-        if(mode==="AI"){
-            alert(p===playerSide ? player+" thắng!" : "AI thắng!");
-        }else{
-            alert(p+" thắng!");
-        }
+        alert(p===playerSide?player+" thắng!":"AI thắng!");
     },200);
 }
 
@@ -328,16 +256,11 @@ function updateUI(){
     document.querySelectorAll(".cell").forEach(cell=>{
         let r=cell.dataset.r,c=cell.dataset.c;
         cell.innerText=board[r][c];
-        cell.classList.remove("last");
-
-        if(last && r==last[0] && c==last[1]){
-            cell.classList.add("last");
-        }
     });
 }
 
 function updateInfo(){
-    info.innerText=`${player} | ${mode} | ${difficulty} | Lượt:${current}`;
+    info.innerText=player+" | "+mode+" | "+difficulty+" | Lượt:"+current;
 }
 </script>
 

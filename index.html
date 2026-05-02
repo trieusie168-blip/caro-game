@@ -1,260 +1,273 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>CARO PRO - ULTIMATE AI</title>
-    <style>
-        body {
-            margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center; color: white;
-            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e") no-repeat center/cover;
-            min-height: 100vh;
-        }
-        h2 { text-shadow: 2px 2px 10px rgba(0,0,0,1); margin-top: 20px; }
-        #controls { background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; display: inline-block; margin: 10px; }
-        button { padding: 8px 15px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; background: #00c6ff; font-weight: bold; transition: 0.3s; }
-        button:hover { background: #0072ff; transform: scale(1.05); }
-        input { padding: 8px; border-radius: 6px; border: none; outline: none; }
-        #board { display: grid; grid-template-columns: repeat(30, 22px); gap: 1px; justify-content: center; margin-top: 10px; background: #444; border: 2px solid #222; width: fit-content; margin-left: auto; margin-right: auto; }
-        .cell { width: 22px; height: 22px; background: #2c3e50; line-height: 22px; cursor: pointer; font-size: 14px; font-weight: bold; border: 0.1px solid #34495e; }
-        .cell:hover { background: #34495e; }
-        .last { background: #f1c40f !important; color: black; }
-        .win { background: #2ecc71 !important; }
-        #history { margin-top: 10px; font-size: 13px; color: #ecf0f1; }
-    </style>
+<meta charset="UTF-8">
+<title>CARO PRO - SMART AI</title>
+
+<style>
+body {
+    margin:0;
+    font-family:Segoe UI;
+    text-align:center;
+    color:white;
+    background:linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)),
+    url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
+    no-repeat center/cover;
+}
+
+#board{
+    display:grid;
+    grid-template-columns:repeat(30,22px);
+    gap:1px;
+    justify-content:center;
+}
+
+.cell{
+    width:22px;height:22px;
+    background:#2c3e50;
+    line-height:22px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.cell:hover{background:#34495e;}
+.last{background:yellow !important;color:black;}
+
+button{margin:5px;padding:6px;}
+</style>
 </head>
+
 <body>
 
-<h2>🏖️ CARO PRO: NHÂN TUỆ TẠO</h2>
+<h2>🤖 CARO AI THÔNG MINH</h2>
 
-<div id="controls">
-    <input id="name" placeholder="Nhập tên của bạn...">
-    <button onclick="start()">Bắt đầu</button>
-    <br>
-    <button onclick="chooseMode('AI')">🤖 Đấu AI (Siêu khó)</button>
-    <button onclick="chooseMode('2P')">👥 2 Người</button>
-    <button onclick="reset()">🔄 Reset</button>
-    <div id="history"></div>
-</div>
+<input id="name" placeholder="Nhập tên">
+<button onclick="start()">Start</button>
+<br>
+
+<button onclick="chooseMode('AI')">Đấu AI</button>
+<button onclick="chooseMode('2P')">2 Người</button>
+<button onclick="reset()">Reset</button>
 
 <div id="info"></div>
 <div id="board"></div>
 
 <script>
-const SIZE = 30;
-let board = [], current = "X", mode = "", gameOver = false, last = null, player = "";
-const boardDiv = document.getElementById("board");
-const info = document.getElementById("info");
-const historyDiv = document.getElementById("history");
+const SIZE=30;
+let board=[],current="X",mode="",gameOver=false,last=null,player="";
 
-// Khởi tạo danh sách người chơi từ LocalStorage
-let recentPlayers = JSON.parse(localStorage.getItem("caro_players")) || [];
+const boardDiv=document.getElementById("board");
+const info=document.getElementById("info");
 
-function updateHistoryUI() {
-    historyDiv.innerHTML = "<b>Người chơi gần đây:</b> " + (recentPlayers.length ? recentPlayers.join(", ") : "Chưa có");
-}
-
-function savePlayer(name) {
-    if (!name || recentPlayers.includes(name)) return;
-    recentPlayers.unshift(name);
-    if (recentPlayers.length > 5) recentPlayers.pop();
-    localStorage.setItem("caro_players", JSON.stringify(recentPlayers));
-    updateHistoryUI();
-}
-
-function start() {
-    player = document.getElementById("name").value.trim() || "Người chơi";
-    savePlayer(player);
+// ===== START =====
+function start(){
+    player=document.getElementById("name").value || "Người chơi";
     init();
 }
 
-function init() {
-    board = Array(SIZE).fill().map(() => Array(SIZE).fill(""));
-    boardDiv.innerHTML = "";
-    current = "X";
-    gameOver = false;
-    last = null;
+// ===== INIT =====
+function init(){
+    board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
+    boardDiv.innerHTML="";
+    current="X";
+    gameOver=false;
 
-    for (let i = 0; i < SIZE; i++) {
-        for (let j = 0; j < SIZE; j++) {
-            let cell = document.createElement("div");
-            cell.className = "cell";
-            cell.id = `c-${i}-${j}`;
-            cell.onclick = () => move(i, j);
+    for(let i=0;i<SIZE;i++){
+        for(let j=0;j<SIZE;j++){
+            let cell=document.createElement("div");
+            cell.className="cell";
+            cell.id=`c-${i}-${j}`;
+            cell.onclick=()=>move(i,j);
             boardDiv.appendChild(cell);
         }
     }
     updateInfo();
-    updateHistoryUI();
 }
 
-function chooseMode(m) {
-    mode = m;
-    alert("Chế độ: " + (mode === "AI" ? "Đấu với AI siêu cấp" : "2 người chơi"));
+// ===== MODE =====
+function chooseMode(m){
+    mode=m;
     init();
 }
 
-function move(r, c) {
-    if (board[r][c] !== "" || gameOver || !mode) return;
+// ===== MOVE =====
+function move(r,c){
+    if(board[r][c]!=="" || gameOver || !mode) return;
 
-    board[r][c] = current;
-    last = [r, c];
-    updateUI();
+    place(r,c,current);
 
-    if (checkWin(r, c, current)) return end(current);
+    if(checkWin(r,c,current)) return end(current);
 
-    if (mode === "2P") {
-        current = current === "X" ? "O" : "X";
-    } else {
-        current = "O";
+    if(mode==="2P"){
+        current=current==="X"?"O":"X";
+    }else{
+        current="O";
         updateInfo();
-        setTimeout(aiThink, 100); 
+        setTimeout(aiMove,300);
     }
     updateInfo();
 }
 
-// AI LOGIC - MINIMAX WITH ALPHA-BETA PRUNING
-function aiThink() {
-    let bestScore = -Infinity;
-    let move = null;
+// ===== PLACE =====
+function place(r,c,p){
+    board[r][c]=p;
+    last=[r,c];
 
-    // Chỉ tìm kiếm xung quanh các quân cờ đã có để tăng tốc (bán kính 2 ô)
-    let candidates = getCandidates();
-    
-    for (let m of candidates) {
-        board[m.r][m.c] = "O";
-        let score = minimax(board, 2, -Infinity, Infinity, false);
-        board[m.r][m.c] = "";
-        if (score > bestScore) {
-            bestScore = score;
-            move = m;
+    let cell=document.getElementById(`c-${r}-${c}`);
+    cell.innerText=p;
+    cell.classList.add("last");
+
+    let prev=document.querySelector(".last:not(#c-"+r+"-"+c+")");
+    if(prev) prev.classList.remove("last");
+}
+
+// ===== AI =====
+function aiMove(){
+
+    let moves=getCandidates();
+
+    // thắng ngay
+    for(let m of moves){
+        board[m.r][m.c]="O";
+        if(checkWin(m.r,m.c,"O")){
+            board[m.r][m.c]="";
+            return placeAI(m);
+        }
+        board[m.r][m.c]="";
+    }
+
+    // chặn ngay
+    for(let m of moves){
+        board[m.r][m.c]="X";
+        if(checkWin(m.r,m.c,"X")){
+            board[m.r][m.c]="";
+            return placeAI(m);
+        }
+        board[m.r][m.c]="";
+    }
+
+    let best=null,max=-Infinity;
+
+    for(let m of moves){
+        let score=evaluate(m.r,m.c);
+        if(score>max){
+            max=score;
+            best=m;
         }
     }
 
-    if (move) {
-        board[move.r][move.c] = "O";
-        last = [move.r, move.c];
-        updateUI();
-        if (checkWin(move.r, move.c, "O")) return end("O");
-        current = "X";
-        updateInfo();
-    }
+    placeAI(best);
 }
 
-function getCandidates() {
-    let cells = [];
-    let visited = new Set();
-    for (let i = 0; i < SIZE; i++) {
-        for (let j = 0; j < SIZE; j++) {
-            if (board[i][j] !== "") {
-                for (let r = i - 2; r <= i + 2; r++) {
-                    for (let c = j - 2; c <= j + 2; c++) {
-                        if (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === "" && !visited.has(`${r},${c}`)) {
-                            cells.push({ r, c, score: evaluatePos(r, c) });
-                            visited.add(`${r},${c}`);
-                        }
-                    }
-                }
+function placeAI(m){
+    place(m.r,m.c,"O");
+
+    if(checkWin(m.r,m.c,"O")) return end("O");
+
+    current="X";
+    updateInfo();
+}
+
+// ===== EVALUATE =====
+function evaluate(r,c){
+    return score(r,c,"O")*2 + score(r,c,"X")*3;
+}
+
+function score(r,c,p){
+    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    let total=0;
+
+    for(let [dr,dc] of dirs){
+        let count=1,open=0;
+
+        for(let i=1;i<5;i++){
+            let nr=r+dr*i,nc=c+dc*i;
+            if(board[nr]?.[nc]==p) count++;
+            else{
+                if(board[nr]?.[nc]=="") open++;
+                break;
             }
         }
-    }
-    if (cells.length === 0) return [{ r: Math.floor(SIZE/2), c: Math.floor(SIZE/2) }];
-    return cells.sort((a, b) => b.score - a.score).slice(0, 20); // Lấy 20 nước tiềm năng nhất
-}
 
-function minimax(node, depth, alpha, beta, isMaximizing) {
-    if (depth === 0) return evaluateBoard();
-
-    let candidates = getCandidates();
-    if (isMaximizing) {
-        let maxEval = -Infinity;
-        for (let m of candidates) {
-            node[m.r][m.c] = "O";
-            let ev = minimax(node, depth - 1, alpha, beta, false);
-            node[m.r][m.c] = "";
-            maxEval = Math.max(maxEval, ev);
-            alpha = Math.max(alpha, ev);
-            if (beta <= alpha) break;
+        for(let i=1;i<5;i++){
+            let nr=r-dr*i,nc=c-dc*i;
+            if(board[nr]?.[nc]==p) count++;
+            else{
+                if(board[nr]?.[nc]=="") open++;
+                break;
+            }
         }
-        return maxEval;
-    } else {
-        let minEval = Infinity;
-        for (let m of candidates) {
-            node[m.r][m.c] = "X";
-            let ev = minimax(node, depth - 1, alpha, beta, true);
-            node[m.r][m.c] = "";
-            minEval = Math.min(minEval, ev);
-            beta = Math.min(beta, ev);
-            if (beta <= alpha) break;
-        }
-        return minEval;
-    }
-}
 
-function evaluatePos(r, c) {
-    return score(r, c, "O") + score(r, c, "X");
-}
-
-function evaluateBoard() {
-    // Đơn giản hóa để không lag: chỉ lấy điểm của nước đi cuối
-    if (!last) return 0;
-    return score(last[0], last[1], "O") - score(last[0], last[1], "X");
-}
-
-function score(r, c, p) {
-    let dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
-    let total = 0;
-    for (let [dr, dc] of dirs) {
-        let line = getLine(r, c, dr, dc, p);
-        if (line >= 5) total += 100000;
-        else if (line === 4) total += 5000;
-        else if (line === 3) total += 500;
-        else if (line === 2) total += 50;
+        if(count>=5) total+=1000000;
+        else if(count==4 && open==2) total+=200000;
+        else if(count==4) total+=50000;
+        else if(count==3 && open==2) total+=20000;
+        else if(count==3) total+=5000;
+        else if(count==2) total+=1000;
     }
     return total;
 }
 
-function getLine(r, c, dr, dc, p) {
-    let count = 1;
-    for (let i = 1; i < 5; i++) {
-        if (board[r + dr * i]?.[c + dc * i] === p) count++;
-        else break;
+// ===== CANDIDATE =====
+function getCandidates(){
+    let arr=[];
+
+    for(let i=0;i<SIZE;i++){
+        for(let j=0;j<SIZE;j++){
+            if(board[i][j]==="" && near(i,j)){
+                arr.push({r:i,c:j});
+            }
+        }
     }
-    for (let i = 1; i < 5; i++) {
-        if (board[r - dr * i]?.[c - dc * i] === p) count++;
-        else break;
+
+    if(arr.length===0) return [{r:15,c:15}];
+    return arr;
+}
+
+function near(r,c){
+    for(let i=-2;i<=2;i++){
+        for(let j=-2;j<=2;j++){
+            if(board[r+i]?.[c+j]!="") return true;
+        }
     }
-    return count;
+    return false;
 }
 
-function checkWin(r, c, p) {
-    return score(r, c, p) >= 100000;
-}
+// ===== WIN =====
+function checkWin(r,c,p){
+    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
 
-function updateUI() {
-    if (last) {
-        let prevLast = document.querySelector(".last");
-        if (prevLast) prevLast.classList.remove("last");
-        let cell = document.getElementById(`c-${last[0]}-${last[1]}`);
-        cell.innerText = board[last[0]][last[1]];
-        cell.classList.add("last");
-        cell.style.color = board[last[0]][last[1]] === "X" ? "#ff4d4d" : "#2ecc71";
+    for(let [dr,dc] of dirs){
+        let count=1;
+
+        for(let i=1;i<5;i++){
+            if(board[r+dr*i]?.[c+dc*i]===p) count++;
+            else break;
+        }
+        for(let i=1;i<5;i++){
+            if(board[r-dr*i]?.[c-dc*i]===p) count++;
+            else break;
+        }
+
+        if(count>=5) return true;
     }
+    return false;
 }
 
-function updateInfo() {
-    info.innerHTML = `Lượt: <b>${current}</b> | Chế độ: ${mode || '...'} | Người chơi: ${player}`;
+// ===== UI =====
+function updateInfo(){
+    info.innerText="Người chơi: "+player+" | Mode: "+mode+" | Lượt: "+current;
 }
 
-function end(p) {
-    gameOver = true;
-    let msg = (mode === "AI" && p === "O") ? "AI đã chiến thắng bạn!" : `Chúc mừng ${player} (Quân ${p}) đã thắng!`;
-    setTimeout(() => alert(msg), 100);
+// ===== END =====
+function end(p){
+    gameOver=true;
+    setTimeout(()=>alert((mode==="AI"&&p==="O")?"AI thắng!":player+" thắng!"),200);
 }
 
-function reset() { init(); }
-
-updateHistoryUI();
+// ===== RESET =====
+function reset(){init();}
 </script>
+
 </body>
 </html>

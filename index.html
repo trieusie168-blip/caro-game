@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO GOMOKU PRO</title>
+<title>CARO PRO</title>
 
 <style>
 body{
@@ -13,6 +13,7 @@ body{
     background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
     no-repeat center/cover;
 }
+
 h2{text-shadow:2px 2px 5px black;}
 
 #controls{margin:10px;}
@@ -52,7 +53,7 @@ input{padding:6px;border-radius:6px;border:none;}
 
 <body>
 
-<h2>🏖️ CARO GOMOKU PRO</h2>
+<h2>🏖️ CARO PRO</h2>
 
 <div id="controls">
 
@@ -68,7 +69,7 @@ input{padding:6px;border-radius:6px;border:none;}
     <p>🎯 Chọn độ khó:</p>
     <button onclick="setLevel('easy')">😊 Dễ</button>
     <button onclick="setLevel('normal')">😐 Bình thường</button>
-    <button onclick="setLevel('hard')">😈 Pro (Gomoku)</button>
+    <button onclick="setLevel('hard')">😈 Khó</button>
 </div>
 
 <br>
@@ -117,13 +118,20 @@ function init(){
 // ===== MODE =====
 function chooseMode(m){
     mode=m;
-    levelBox.style.display = (m==="AI") ? "block" : "none";
+
+    if(mode==="AI"){
+        levelBox.style.display="block";
+    }else{
+        levelBox.style.display="none";
+    }
+
+    alert("Đã chọn chế độ: " + (mode==="AI"?"Đấu AI":"2 Người"));
 }
 
 // ===== LEVEL =====
 function setLevel(lv){
     difficulty=lv;
-    alert("Độ khó: "+lv);
+    alert("Độ khó: " + lv);
 }
 
 // ===== MOVE =====
@@ -144,7 +152,7 @@ function move(r,c){
         if(current==="X"){
             current="O";
             updateInfo();
-            setTimeout(aiMove,500);
+            setTimeout(aiMove,500); // delay 0.5s
         }
     }
 }
@@ -152,152 +160,86 @@ function move(r,c){
 // ===== AI =====
 function aiMove(){
 
-    let moves=getMoves();
+    let moves=[];
 
-    // 1. thắng ngay
-    for(let m of moves){
-        board[m.r][m.c]="O";
-        if(checkWin(m.r,m.c,"O")){
-            board[m.r][m.c]="";
-            return placeAI(m);
-        }
-        board[m.r][m.c]="";
-    }
-
-    // 2. chặn ngay
-    for(let m of moves){
-        board[m.r][m.c]="X";
-        if(checkWin(m.r,m.c,"X")){
-            board[m.r][m.c]="";
-            return placeAI(m);
-        }
-        board[m.r][m.c]="";
-    }
-
-    // 3. double threat (bẫy kép)
-    for(let m of moves){
-        let threats = countThreats(m.r,m.c,"O");
-        if(threats>=2){
-            return placeAI(m);
-        }
-    }
-
-    // 4. tính điểm mạnh
-    let best=null,max=-Infinity;
-
-    for(let m of moves){
-        let s = evaluatePro(m.r,m.c);
-        if(s>max){
-            max=s;
-            best=m;
-        }
-    }
-
-    placeAI(best);
-}
-
-// ===== DOUBLE THREAT =====
-function countThreats(r,c,p){
-    let count=0;
-    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
-
-    for(let [dr,dc] of dirs){
-        let c1=1,open=0;
-
-        for(let i=1;i<5;i++){
-            let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) c1++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
-                break;
+    for(let i=0;i<SIZE;i++){
+        for(let j=0;j<SIZE;j++){
+            if(board[i][j]===""){
+                moves.push({r:i,c:j,score:evaluate(i,j)});
             }
         }
-
-        for(let i=1;i<5;i++){
-            let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) c1++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
-                break;
-            }
-        }
-
-        if(c1==3 && open==2) count++;
-        if(c1==4 && open>=1) count++;
     }
-    return count;
+
+    if(moves.length===0) return;
+
+    // EASY
+    if(difficulty==="easy"){
+        let m=moves[Math.floor(Math.random()*moves.length)];
+        return placeAI(m);
+    }
+
+    moves.sort((a,b)=>b.score-a.score);
+
+    // NORMAL
+    if(difficulty==="normal"){
+        let top=moves.slice(0,5);
+        let m=top[Math.floor(Math.random()*top.length)];
+        return placeAI(m);
+    }
+
+    // HARD (boss)
+    return placeAI(moves[0]);
 }
 
-// ===== EVALUATE =====
-function evaluatePro(r,c){
-    return scorePro(r,c,"O")*2 + scorePro(r,c,"X")*3 + center(r,c);
+// ===== PLACE AI =====
+function placeAI(m){
+    board[m.r][m.c]="O";
+    last=[m.r,m.c];
+    updateUI();
+
+    if(checkWin(m.r,m.c,"O")) return end("O");
+
+    current="X";
+    updateInfo();
 }
 
-function scorePro(r,c,p){
+// ===== AI LOGIC =====
+function evaluate(r,c){
+    return score(r,c,"O")*2 + score(r,c,"X")*2;
+}
+
+function score(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
     let total=0;
 
     for(let [dr,dc] of dirs){
-        let count=1,open=0;
+        let count=1;
 
         for(let i=1;i<5;i++){
             let nr=r+dr*i,nc=c+dc*i;
             if(board[nr]?.[nc]==p) count++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
-                break;
-            }
+            else break;
         }
 
         for(let i=1;i<5;i++){
             let nr=r-dr*i,nc=c-dc*i;
             if(board[nr]?.[nc]==p) count++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
-                break;
-            }
+            else break;
         }
 
-        if(count>=5) total+=1000000;
-        else if(count==4 && open==2) total+=200000;
-        else if(count==4) total+=50000;
-        else if(count==3 && open==2) total+=20000;
-        else if(count==3) total+=5000;
-        else if(count==2) total+=1000;
+        if(count>=5) total+=100000;
+        else if(count==4) total+=10000;
+        else if(count==3) total+=1000;
+        else if(count==2) total+=100;
     }
+
     return total;
-}
-
-function center(r,c){
-    let m=SIZE/2;
-    return 10-Math.abs(r-m)-Math.abs(c-m);
-}
-
-// ===== MOVE FILTER =====
-function getMoves(){
-    let arr=[];
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            if(board[i][j]==="" && near(i,j)){
-                arr.push({r:i,c:j});
-            }
-        }
-    }
-    return arr.length?arr:[{r:15,c:15}];
-}
-
-function near(r,c){
-    for(let i=-2;i<=2;i++){
-        for(let j=-2;j<=2;j++){
-            if(board[r+i]?.[c+j]!="") return true;
-        }
-    }
-    return false;
 }
 
 // ===== WIN =====
 function checkWin(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
+
     for(let [dr,dc] of dirs){
         let count=1;
 

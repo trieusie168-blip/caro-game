@@ -1,303 +1,112 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>CARO AI CLEAN</title>
-
-<style>
-body{
-    margin:0;
-    font-family:Arial;
-    text-align:center;
-    color:white;
-    background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
-    no-repeat center/cover;
-}
-
-h1{text-shadow:2px 2px 5px black;}
-
-#board{
-    display:grid;
-    grid-template-columns:repeat(30,22px);
-    gap:2px;
-    justify-content:center;
-}
-
-.cell{
-    width:22px;height:22px;
-    background:rgba(0,0,0,0.6);
-    line-height:22px;
-    cursor:pointer;
-}
-
-.cell:hover{background:#555;}
-.last{background:yellow !important;}
-.win{background:lime !important;}
-
-button{margin:5px;padding:6px;}
-</style>
-</head>
-
-<body>
-
-<h1>🤖 CARO AI</h1>
-
-<input id="name" placeholder="Tên bạn">
-<button onclick="start()">Start</button>
-<br>
-
-<button onclick="setMode('AI')">AI</button>
-<button onclick="setMode('2P')">2 Người</button>
-
-<br>
-
-<button onclick="setLevel('easy')">Dễ</button>
-<button onclick="setLevel('normal')">BT</button>
-<button onclick="setLevel('hard')">Khó</button>
-
-<br>
-
-<button onclick="reset()">Reset</button>
-
-<div id="info"></div>
-<div id="board"></div>
-
-<script>
-const SIZE=30;
-
-let board=[],current="X",mode="AI",difficulty="normal";
-let last=null,gameOver=false,player="";
-
-const boardDiv=document.getElementById("board");
-const info=document.getElementById("info");
-
-// ===== START =====
-function start(){
-    player=document.getElementById("name").value||"Người chơi";
-    init();
-}
-
-// ===== INIT =====
-function init(){
-    board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
-    boardDiv.innerHTML="";
-    current="X";
-    gameOver=false;
-
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            let cell=document.createElement("div");
-            cell.className="cell";
-            cell.dataset.r=i;
-            cell.dataset.c=j;
-            cell.onclick=()=>move(i,j);
-            boardDiv.appendChild(cell);
-        }
-    }
-    updateInfo();
-}
-
-// ===== MOVE =====
-function move(r,c){
-    if(board[r][c]!==""||gameOver) return;
-
-    place(r,c,current);
-
-    let win=checkWin(r,c,current);
-    if(win) return end(win,current);
-
-    if(mode==="2P"){
-        current=current==="X"?"O":"X";
-    }else{
-        if(current==="X"){
-            current="O";
-            setTimeout(aiMove,300);
-        }
-    }
-    updateInfo();
-}
-
-// ===== PLACE =====
-function place(r,c,p){
-    board[r][c]=p;
-    last=[r,c];
-    updateUI();
-}
-
-// ===== AI (ĐÃ SỬA HOÀN TOÀN) =====
+// ===== AI (ĐÃ TỐI ƯU HÓA ĐỂ TẤN CÔNG) =====
 function aiMove(){
+    let moves = [];
 
-    let moves=[];
-
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            if(board[i][j]===""){
-                moves.push({
-                    r:i,
-                    c:j,
-                    score:evaluate(i,j)
-                });
+    // Quét toàn bộ bảng để tìm các ô trống
+    for(let i = 0; i < SIZE; i++){
+        for(let j = 0; j < SIZE; j++){
+            if(board[i][j] === ""){
+                // Chỉ xét các ô có hàng xóm trong phạm vi 2 ô để tăng tốc độ xử lý
+                if (hasNeighbor(i, j)) {
+                    moves.push({
+                        r: i,
+                        c: j,
+                        score: evaluate(i, j)
+                    });
+                }
             }
         }
     }
 
-    if(moves.length===0) return;
+    if(moves.length === 0) return;
 
-    // 1. THẮNG NGAY
+    // 1. KIỂM TRA THẮNG NGAY: Nếu có nước thắng, phải đi ngay
     for(let m of moves){
-        board[m.r][m.c]="O";
-        if(checkWin(m.r,m.c,"O")){
-            board[m.r][m.c]="";
+        board[m.r][m.c] = "O";
+        if(checkWin(m.r, m.c, "O")){
+            board[m.r][m.c] = "";
             return placeAI(m);
         }
-        board[m.r][m.c]="";
+        board[m.r][m.c] = "";
     }
 
-    // 2. CHẶN NGAY
+    // 2. KIỂM TRA CHẶN NGAY: Nếu đối thủ sắp thắng, phải chặn
     for(let m of moves){
-        board[m.r][m.c]="X";
-        if(checkWin(m.r,m.c,"X")){
-            board[m.r][m.c]="";
+        board[m.r][m.c] = "X";
+        if(checkWin(m.r, m.c, "X")){
+            board[m.r][m.c] = "";
             return placeAI(m);
         }
-        board[m.r][m.c]="";
+        board[m.r][m.c] = "";
     }
 
     // 3. SẮP XẾP THEO ĐIỂM
-    moves.sort((a,b)=>b.score-a.score);
+    moves.sort((a, b) => b.score - a.score);
 
     // 4. CHỌN THEO LEVEL
-    if(difficulty==="easy"){
-        return placeAI(
-            moves[Math.floor(Math.random()*moves.length)]
-        );
+    if(difficulty === "easy"){
+        let randomIdx = Math.floor(Math.random() * Math.min(moves.length, 10));
+        return placeAI(moves[randomIdx]);
     }
 
-    if(difficulty==="normal"){
-        let top=moves.slice(0,5);
-        return placeAI(
-            top[Math.floor(Math.random()*top.length)]
-        );
+    if(difficulty === "normal"){
+        let top = moves.slice(0, 3);
+        return placeAI(top[Math.floor(Math.random() * top.length)]);
     }
 
-    return placeAI(moves[0]); // HARD
+    return placeAI(moves[0]); // HARD: Luôn chọn nước đi điểm cao nhất
 }
 
-// ===== AI SUPPORT =====
-function placeAI(m){
-    place(m.r,m.c,"O");
-
-    let win=checkWin(m.r,m.c,"O");
-    if(win) return end(win,"O");
-
-    current="X";
-    updateInfo();
+// Hàm bổ trợ để AI không quét các ô quá xa (tăng hiệu suất)
+function hasNeighbor(r, c) {
+    for (let i = -2; i <= 2; i++) {
+        for (let j = -2; j <= 2; j++) {
+            if (board[r + i]?.[c + j] && board[r + i][c + j] !== "") return true;
+        }
+    }
+    return false;
 }
 
-function evaluate(r,c){
-    return score(r,c,"O")*2 + score(r,c,"X")*3;
+// ===== ĐIỀU CHỈNH TRỌNG SỐ TẤN CÔNG =====
+function evaluate(r, c){
+    // Tăng vọt trọng số của "O" (AI) lên cao hơn "X" (Người chơi)
+    // Giờ đây AI sẽ ưu tiên tự tạo thế cờ của mình hơn là đi theo đuôi bạn
+    return score(r, c, "O") * 5 + score(r, c, "X") * 2;
 }
 
-function score(r,c,p){
-    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
-    let total=0;
+function score(r, c, p){
+    let dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    let total = 0;
 
-    for(let [dr,dc] of dirs){
-        let count=1,open=0;
+    for(let [dr, dc] of dirs){
+        let count = 1, open = 0;
 
-        for(let i=1;i<5;i++){
-            let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) count++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
+        for(let i = 1; i < 5; i++){
+            let nr = r + dr * i, nc = c + dc * i;
+            if(board[nr]?.[nc] == p) count++;
+            else {
+                if(board[nr]?.[nc] == "") open++;
                 break;
             }
         }
 
-        for(let i=1;i<5;i++){
-            let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) count++;
-            else{
-                if(board[nr]?.[nc]=="") open++;
+        for(let i = 1; i < 5; i++){
+            let nr = r - dr * i, nc = c - dc * i;
+            if(board[nr]?.[nc] == p) count++;
+            else {
+                if(board[nr]?.[nc] == "") open++;
                 break;
             }
         }
 
-        if(count>=5) total+=1000000;
-        else if(count==4 && open==2) total+=200000;
-        else if(count==4) total+=50000;
-        else if(count==3 && open==2) total+=20000;
-        else if(count==3) total+=5000;
-        else if(count==2) total+=1000;
+        // Hệ thống điểm mới: Ưu tiên cực cao cho các thế cờ mở
+        if(count >= 5) total += 10000000;          // Thắng
+        else if(count == 4 && open == 2) total += 5000000; // 4 con 2 đầu trống (vô địch)
+        else if(count == 4 && open == 1) total += 1000000; // 4 con 1 đầu trống
+        else if(count == 3 && open == 2) total += 500000;  // 3 con 2 đầu trống
+        else if(count == 3 && open == 1) total += 100000; 
+        else if(count == 2 && open == 2) total += 10000;
+        else if(count == 2 && open == 1) total += 1000;
     }
-
     return total;
 }
-
-// ===== WIN =====
-function checkWin(r,c,p){
-    let dirs=[[0,1],[1,0],[1,1],[1,-1]];
-
-    for(let [dr,dc] of dirs){
-        let cells=[[r,c]];
-
-        for(let i=1;i<5;i++){
-            let nr=r+dr*i,nc=c+dc*i;
-            if(board[nr]?.[nc]==p) cells.push([nr,nc]);
-            else break;
-        }
-
-        for(let i=1;i<5;i++){
-            let nr=r-dr*i,nc=c-dc*i;
-            if(board[nr]?.[nc]==p) cells.unshift([nr,nc]);
-            else break;
-        }
-
-        if(cells.length>=5) return cells;
-    }
-    return null;
-}
-
-// ===== END =====
-function end(cells,p){
-    gameOver=true;
-
-    cells.forEach(([r,c])=>{
-        document.querySelector(
-            `.cell[data-r='${r}'][data-c='${c}']`
-        ).classList.add("win");
-    });
-
-    setTimeout(()=>{
-        alert((mode==="AI"&&p==="O")?"AI thắng!":player+" thắng!");
-    },200);
-}
-
-// ===== UI =====
-function updateUI(){
-    document.querySelectorAll(".cell").forEach(cell=>{
-        let r=cell.dataset.r,c=cell.dataset.c;
-        cell.innerText=board[r][c];
-        cell.classList.remove("last");
-
-        if(last && r==last[0] && c==last[1]){
-            cell.classList.add("last");
-        }
-    });
-}
-
-function updateInfo(){
-    info.innerText =
-        player+" | Mode:"+mode+
-        " | Level:"+difficulty+
-        " | Lượt:"+current;
-}
-
-// ===== CONTROL =====
-function setMode(m){mode=m;}
-function setLevel(l){difficulty=l;}
-function reset(){init();}
-</script>
-
-</body>
-</html>

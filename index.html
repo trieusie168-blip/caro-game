@@ -2,97 +2,78 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>CARO FIXED AI</title>
+<title>CARO AI CLEAN</title>
 
 <style>
 body{
     margin:0;
-    text-align:center;
     font-family:Arial;
+    text-align:center;
     color:white;
-    background:#111;
+    background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e")
+    no-repeat center/cover;
 }
+
+h1{text-shadow:2px 2px 5px black;}
+
 #board{
     display:grid;
-    grid-template-columns:repeat(20,24px);
+    grid-template-columns:repeat(30,22px);
     gap:2px;
     justify-content:center;
-    margin-top:10px;
 }
+
 .cell{
-    width:24px;height:24px;
-    background:#333;
+    width:22px;height:22px;
+    background:rgba(0,0,0,0.6);
+    line-height:22px;
     cursor:pointer;
-    line-height:24px;
-    font-size:14px;
 }
+
 .cell:hover{background:#555;}
-.hidden{display:none;}
-button{margin:5px;}
+.last{background:yellow !important;}
+.win{background:lime !important;}
+
+button{margin:5px;padding:6px;}
 </style>
 </head>
 
 <body>
 
-<h2>CARO FIXED AI</h2>
+<h1>🤖 CARO AI</h1>
 
-<div id="step1">
-<input id="name" placeholder="Tên...">
-<button onclick="nextStep()">Tiếp</button>
-</div>
+<input id="name" placeholder="Tên bạn">
+<button onclick="start()">Start</button>
+<br>
 
-<div id="step2" class="hidden">
-<button onclick="chooseMode('AI')">AI</button>
-<button onclick="chooseMode('2P')">2 Người</button>
-</div>
+<button onclick="setMode('AI')">AI</button>
+<button onclick="setMode('2P')">2 Người</button>
 
-<div id="step3" class="hidden">
-<button onclick="chooseSide('X')">Đi trước</button>
-<button onclick="chooseSide('O')">Đi sau</button>
-</div>
+<br>
 
-<button id="startBtn" class="hidden" onclick="startGame()">Start</button>
+<button onclick="setLevel('easy')">Dễ</button>
+<button onclick="setLevel('normal')">BT</button>
+<button onclick="setLevel('hard')">Khó</button>
+
+<br>
+
+<button onclick="reset()">Reset</button>
 
 <div id="info"></div>
 <div id="board"></div>
 
 <script>
-const SIZE=20;
+const SIZE=30;
 
-let board=[], current="X";
-let playerSide="X", aiSide="O";
-let mode="", gameOver=false, player="";
+let board=[],current="X",mode="AI",difficulty="normal";
+let last=null,gameOver=false,player="";
 
 const boardDiv=document.getElementById("board");
 const info=document.getElementById("info");
 
-// FIX DOM ELEMENTS
-const step1=document.getElementById("step1");
-const step2=document.getElementById("step2");
-const step3=document.getElementById("step3");
-const startBtn=document.getElementById("startBtn");
-
-// ===== FLOW =====
-function nextStep(){
-    step1.classList.add("hidden");
-    step2.classList.remove("hidden");
-}
-
-function chooseMode(m){
-    mode=m;
-    step2.classList.add("hidden");
-    step3.classList.remove("hidden");
-}
-
-function chooseSide(s){
-    playerSide=s;
-    aiSide=(s==="X")?"O":"X";
-    step3.classList.add("hidden");
-    startBtn.classList.remove("hidden");
-}
-
-function startGame(){
-    player=document.getElementById("name").value||"Player";
+// ===== START =====
+function start(){
+    player=document.getElementById("name").value||"Người chơi";
     init();
 }
 
@@ -100,8 +81,8 @@ function startGame(){
 function init(){
     board=Array(SIZE).fill().map(()=>Array(SIZE).fill(""));
     boardDiv.innerHTML="";
-    gameOver=false;
     current="X";
+    gameOver=false;
 
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
@@ -113,119 +94,143 @@ function init(){
             boardDiv.appendChild(cell);
         }
     }
-
     updateInfo();
-
-    // AI đi trước
-    if(mode==="AI" && aiSide==="X"){
-        let mid=Math.floor(SIZE/2);
-        place(mid,mid,aiSide);
-        current=playerSide;
-    }
 }
 
 // ===== MOVE =====
 function move(r,c){
-    if(gameOver || board[r][c]!="") return;
-    if(mode==="AI" && current!==playerSide) return;
+    if(board[r][c]!==""||gameOver) return;
 
     place(r,c,current);
 
-    if(checkWin(r,c,current)) return end(current);
+    let win=checkWin(r,c,current);
+    if(win) return end(win,current);
 
-    current=(current==="X")?"O":"X";
-    updateInfo();
-
-    if(mode==="AI" && current===aiSide){
-        setTimeout(aiMove,100);
+    if(mode==="2P"){
+        current=current==="X"?"O":"X";
+    }else{
+        if(current==="X"){
+            current="O";
+            setTimeout(aiMove,300);
+        }
     }
+    updateInfo();
 }
 
 // ===== PLACE =====
 function place(r,c,p){
     board[r][c]=p;
+    last=[r,c];
     updateUI();
 }
 
-// ===== AI (FIXED + KHÔNG TREO) =====
+// ===== AI (ĐÃ SỬA HOÀN TOÀN) =====
 function aiMove(){
-    let best=null;
-    let bestScore=-Infinity;
 
-    let moves=getCandidateMoves(); // 👈 FIX QUAN TRỌNG
-
-    for(let m of moves){
-        board[m.r][m.c]=aiSide;
-        let score=evaluate();
-        board[m.r][m.c]="";
-
-        if(score>bestScore){
-            bestScore=score;
-            best=m;
-        }
-    }
-
-    if(!best) return;
-
-    place(best.r,best.c,aiSide);
-
-    if(checkWin(best.r,best.c,aiSide)) return end(aiSide);
-
-    current=playerSide;
-    updateInfo();
-}
-
-// ===== CHỈ XÉT VÙNG GẦN QUÂN (FIX TREO) =====
-function getCandidateMoves(){
-    let list=[];
+    let moves=[];
 
     for(let i=0;i<SIZE;i++){
         for(let j=0;j<SIZE;j++){
             if(board[i][j]===""){
-                if(hasNeighbor(i,j)) list.push({r:i,c:j});
+                moves.push({
+                    r:i,
+                    c:j,
+                    score:evaluate(i,j)
+                });
             }
         }
     }
 
-    return list.length?list:[{r:10,c:10}];
-}
+    if(moves.length===0) return;
 
-function hasNeighbor(r,c){
-    for(let i=-1;i<=1;i++){
-        for(let j=-1;j<=1;j++){
-            if(board[r+i]?.[c+j]) return true;
+    // 1. THẮNG NGAY
+    for(let m of moves){
+        board[m.r][m.c]="O";
+        if(checkWin(m.r,m.c,"O")){
+            board[m.r][m.c]="";
+            return placeAI(m);
         }
+        board[m.r][m.c]="";
     }
-    return false;
+
+    // 2. CHẶN NGAY
+    for(let m of moves){
+        board[m.r][m.c]="X";
+        if(checkWin(m.r,m.c,"X")){
+            board[m.r][m.c]="";
+            return placeAI(m);
+        }
+        board[m.r][m.c]="";
+    }
+
+    // 3. SẮP XẾP THEO ĐIỂM
+    moves.sort((a,b)=>b.score-a.score);
+
+    // 4. CHỌN THEO LEVEL
+    if(difficulty==="easy"){
+        return placeAI(
+            moves[Math.floor(Math.random()*moves.length)]
+        );
+    }
+
+    if(difficulty==="normal"){
+        let top=moves.slice(0,5);
+        return placeAI(
+            top[Math.floor(Math.random()*top.length)]
+        );
+    }
+
+    return placeAI(moves[0]); // HARD
 }
 
-// ===== EVALUATE =====
-function evaluate(){
-    return score(aiSide)-score(playerSide);
+// ===== AI SUPPORT =====
+function placeAI(m){
+    place(m.r,m.c,"O");
+
+    let win=checkWin(m.r,m.c,"O");
+    if(win) return end(win,"O");
+
+    current="X";
+    updateInfo();
 }
 
-function score(p){
+function evaluate(r,c){
+    return score(r,c,"O")*2 + score(r,c,"X")*3;
+}
+
+function score(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
     let total=0;
 
-    for(let i=0;i<SIZE;i++){
-        for(let j=0;j<SIZE;j++){
-            if(board[i][j]===p){
-                for(let [dr,dc] of dirs){
-                    let count=1;
-                    for(let k=1;k<5;k++){
-                        if(board[i+dr*k]?.[j+dc*k]===p) count++;
-                        else break;
-                    }
+    for(let [dr,dc] of dirs){
+        let count=1,open=0;
 
-                    if(count>=5) total+=100000;
-                    else if(count===4) total+=10000;
-                    else if(count===3) total+=1000;
-                    else if(count===2) total+=100;
-                }
+        for(let i=1;i<5;i++){
+            let nr=r+dr*i,nc=c+dc*i;
+            if(board[nr]?.[nc]==p) count++;
+            else{
+                if(board[nr]?.[nc]=="") open++;
+                break;
             }
         }
+
+        for(let i=1;i<5;i++){
+            let nr=r-dr*i,nc=c-dc*i;
+            if(board[nr]?.[nc]==p) count++;
+            else{
+                if(board[nr]?.[nc]=="") open++;
+                break;
+            }
+        }
+
+        if(count>=5) total+=1000000;
+        else if(count==4 && open==2) total+=200000;
+        else if(count==4) total+=50000;
+        else if(count==3 && open==2) total+=20000;
+        else if(count==3) total+=5000;
+        else if(count==2) total+=1000;
     }
+
     return total;
 }
 
@@ -234,28 +239,38 @@ function checkWin(r,c,p){
     let dirs=[[0,1],[1,0],[1,1],[1,-1]];
 
     for(let [dr,dc] of dirs){
-        let count=1;
+        let cells=[[r,c]];
 
-        for(let k=1;k<5;k++){
-            if(board[r+dr*k]?.[c+dc*k]===p) count++;
-            else break;
-        }
-        for(let k=1;k<5;k++){
-            if(board[r-dr*k]?.[c-dc*k]===p) count++;
+        for(let i=1;i<5;i++){
+            let nr=r+dr*i,nc=c+dc*i;
+            if(board[nr]?.[nc]==p) cells.push([nr,nc]);
             else break;
         }
 
-        if(count>=5) return true;
+        for(let i=1;i<5;i++){
+            let nr=r-dr*i,nc=c-dc*i;
+            if(board[nr]?.[nc]==p) cells.unshift([nr,nc]);
+            else break;
+        }
+
+        if(cells.length>=5) return cells;
     }
-    return false;
+    return null;
 }
 
 // ===== END =====
-function end(p){
+function end(cells,p){
     gameOver=true;
+
+    cells.forEach(([r,c])=>{
+        document.querySelector(
+            `.cell[data-r='${r}'][data-c='${c}']`
+        ).classList.add("win");
+    });
+
     setTimeout(()=>{
-        alert(p===playerSide?player+" thắng!":"AI thắng!");
-    },100);
+        alert((mode==="AI"&&p==="O")?"AI thắng!":player+" thắng!");
+    },200);
 }
 
 // ===== UI =====
@@ -263,12 +278,25 @@ function updateUI(){
     document.querySelectorAll(".cell").forEach(cell=>{
         let r=cell.dataset.r,c=cell.dataset.c;
         cell.innerText=board[r][c];
+        cell.classList.remove("last");
+
+        if(last && r==last[0] && c==last[1]){
+            cell.classList.add("last");
+        }
     });
 }
 
 function updateInfo(){
-    info.innerText=player+" | lượt: "+current;
+    info.innerText =
+        player+" | Mode:"+mode+
+        " | Level:"+difficulty+
+        " | Lượt:"+current;
 }
+
+// ===== CONTROL =====
+function setMode(m){mode=m;}
+function setLevel(l){difficulty=l;}
+function reset(){init();}
 </script>
 
 </body>
